@@ -1002,14 +1002,31 @@
         function showReminder(milestone, daysUntil) {
             const message = `🔔 重要提醒\n\n距离「${milestone.name}」还有 ${daysUntil} 天！\n日期：${milestone.date}\n${milestone.note ? '备注：' + milestone.note : ''}\n\n请做好准备！`;
             
-            // 浏览器通知
+            console.log('📤 发送提醒通知...', { name: milestone.name, daysUntil });
+            
+            // 1. 发送微信通知（优先）
+            if (typeof sendWeChatNotification === 'function') {
+                const title = `🔔 日程提醒 (${daysUntil}天后)`;
+                const content = `## 重要提醒\n\n距离「**${milestone.name}**」还有 **${daysUntil}** 天！\n\n**日期：** ${milestone.date}\n${milestone.note ? '**备注：** ' + milestone.note + '\n' : ''}\n请做好准备！💪`;
+                
+                sendWeChatNotification(title, content).then(success => {
+                    if (success) {
+                        console.log('✅ 微信提醒发送成功');
+                    } else {
+                        console.error('❌ 微信提醒发送失败');
+                    }
+                });
+            } else {
+                console.error('❌ sendWeChatNotification 函数未定义');
+            }
+            
+            // 2. 浏览器通知（备用）
             if ('Notification' in window && Notification.permission === 'granted') {
                 new Notification('日程提醒', {
                     body: message,
-                    icon: '📅'
+                    icon: '📅',
+                    badge: '🔔'
                 });
-            } else {
-                alert(message);
             }
         }
 
