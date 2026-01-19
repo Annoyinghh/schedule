@@ -1658,9 +1658,11 @@
         function renderMilestones() {
             const container = document.getElementById('milestonesContainer');
             const today = new Date();
+            today.setHours(0, 0, 0, 0);
             
             container.innerHTML = baseConfig.milestones.map((milestone, index) => {
                 const milestoneDate = new Date(milestone.date);
+                milestoneDate.setHours(0, 0, 0, 0);
                 const daysUntil = Math.ceil((milestoneDate - today) / (1000 * 60 * 60 * 24));
                 const isPast = daysUntil < 0;
                 const daysText = isPast ? `已过去 ${Math.abs(daysUntil)} 天` : `还有 ${daysUntil} 天`;
