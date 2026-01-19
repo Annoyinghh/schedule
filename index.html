@@ -668,13 +668,20 @@
 
         // 同步数据到云服务器
         async function syncToCloudServer() {
-            if (!API_CONFIG.enabled) return;
+            if (!API_CONFIG.enabled) {
+                console.log('⚠️ API同步已禁用');
+                return;
+            }
+            
+            console.log('📤 开始同步数据到云服务器...');
             
             try {
                 const data = {
                     milestones: baseConfig.milestones,
                     calendarEvents: monthEvents
                 };
+                
+                console.log('📦 同步数据:', data);
                 
                 const response = await fetch(`${API_CONFIG.baseURL}/events/sync`, {
                     method: 'POST',
@@ -685,12 +692,14 @@
                 });
                 
                 if (response.ok) {
-                    console.log('✅ 数据已同步到云服务器');
+                    const result = await response.json();
+                    console.log('✅ 数据已同步到云服务器:', result);
                 } else {
-                    console.warn('⚠️ 云服务器同步失败，但本地数据已保存');
+                    console.warn('⚠️ 云服务器同步失败 (HTTP ' + response.status + ')，但本地数据已保存');
                 }
             } catch (error) {
-                console.warn('⚠️ 无法连接到云服务器，但本地数据已保存');
+                console.warn('⚠️ 无法连接到云服务器:', error.message);
+                console.warn('   本地数据已保存，但未同步到云端');
             }
         }
 

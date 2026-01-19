@@ -142,8 +142,7 @@ function checkAndSendReminders() {
             }
             var reminder = reminders[index];
             var title = '🔔 日程提醒 (' + reminder.daysUntil + '天后)';
-            var dataSource = fs.existsSync(CONFIG.DATA_FILE) ? '云服务器同步数据' : '默认数据';
-            var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n*数据来源：' + dataSource + '*';
+            var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n*来自云服务器自动提醒*';
             sendWeChatNotification(title, content, function() {
                 index++;
                 setTimeout(sendNext, 1000);
