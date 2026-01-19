@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * 日程管理系统 - 每日自动提醒脚本 V2
- * 从本地数据文件读取事件（由API服务器维护）
+ * 日程管理系统 - 每日自动提醒脚本（兼容老版本Node.js）
  */
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+var https = require('https');
+var fs = require('fs');
+var path = require('path');
 
 // 配置
-const CONFIG = {
+var CONFIG = {
     SERVER_CHAN_KEY: 'SCT310265TyJ4D67VAfJfQTSj87381qEAY',
     REMINDER_DAYS: [14, 7, 3, 1],
     DATA_FILE: path.join(__dirname, 'events_data.json')
@@ -20,58 +19,63 @@ const CONFIG = {
 function loadEvents() {
     try {
         if (fs.existsSync(CONFIG.DATA_FILE)) {
-            const data = fs.readFileSync(CONFIG.DATA_FILE, 'utf8');
+            var data = fs.readFileSync(CONFIG.DATA_FILE, 'utf8');
             return JSON.parse(data);
         }
     } catch (e) {
         console.error('❌ 读取数据失败:', e);
     }
     return {
-        milestones: [],
+        milestones: [
+            { date: "2026-03-15", name: "春季大考 (预估)", note: "3月1日开始停止娱乐，全力冲刺" },
+            { date: "2026-03-20", name: "求职+基础期开始", note: "重点处理春招和重学基础" },
+            { date: "2026-06-01", name: "求职+基础期结束", note: "" },
+            { date: "2026-11-27", name: "年度大考·国考 (参考)", note: "11月进入全真模拟模式" },
+            { date: "2026-12-07", name: "年度大考·省考 (参考)", note: "考完即止，长假休息" }
+        ],
         calendarEvents: {}
     };
 }
 
 // 发送微信通知
-function sendWeChatNotification(title, content) {
-    return new Promise((resolve) => {
-        const postData = 'title=' + encodeURIComponent(title) + '&desp=' + encodeURIComponent(content);
-        const options = {
-            hostname: 'sctapi.ftqq.com',
-            port: 443,
-            path: '/' + CONFIG.SERVER_CHAN_KEY + '.send',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
-        };
-        const req = https.request(options, function(res) {
-            var data = '';
-            res.on('data', function(chunk) { data += chunk; });
-            res.on('end', function() {
-                try {
-                    var result = JSON.parse(data);
-                    if (result.code === 0) {
-                        console.log('✅ 发送成功: ' + title);
-                        resolve(true);
-                    } else {
-                        console.log('❌ 发送失败: ' + result.message);
-                        resolve(false);
-                    }
-                } catch (e) {
-                    console.log('❌ 解析失败');
-                    resolve(false);
+function sendWeChatNotification(title, content, callback) {
+    var postData = 'title=' + encodeURIComponent(title) + '&desp=' + encodeURIComponent(content);
+    var options = {
+        hostname: 'sctapi.ftqq.com',
+        port: 443,
+        path: '/' + CONFIG.SERVER_CHAN_KEY + '.send',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+        },
+        rejectUnauthorized: false
+    };
+    var req = https.request(options, function(res) {
+        var data = '';
+        res.on('data', function(chunk) { data += chunk; });
+        res.on('end', function() {
+            try {
+                var result = JSON.parse(data);
+                if (result.code === 0) {
+                    console.log('✅ 发送成功: ' + title);
+                    callback(true);
+                } else {
+                    console.log('❌ 发送失败: ' + result.message);
+                    callback(false);
                 }
-            });
+            } catch (e) {
+                console.log('❌ 解析失败');
+                callback(false);
+            }
         });
-        req.on('error', function(e) {
-            console.log('❌ 请求失败: ' + e.message);
-            resolve(false);
-        });
-        req.write(postData);
-        req.end();
     });
+    req.on('error', function(e) {
+        console.log('❌ 请求失败: ' + e.message);
+        callback(false);
+    });
+    req.write(postData);
+    req.end();
 }
 
 // 计算日期差
@@ -88,8 +92,7 @@ function checkAndSendReminders() {
     console.log('\n🔍 开始检查提醒...');
     console.log('📅 当前时间: ' + new Date().toLocaleString('zh-CN'));
     
-    // 读取事件数据
-    const events = loadEvents();
+    var events = loadEvents();
     console.log('📂 加载事件数据:', {
         milestones: events.milestones.length,
         calendarEvents: Object.keys(events.calendarEvents).length
@@ -137,7 +140,7 @@ function checkAndSendReminders() {
             var reminder = reminders[index];
             var title = '🔔 日程提醒 (' + reminder.daysUntil + '天后)';
             var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪';
-            sendWeChatNotification(title, content).then(function() {
+            sendWeChatNotification(title, content, function() {
                 index++;
                 setTimeout(sendNext, 1000);
             });
@@ -150,6 +153,6 @@ function checkAndSendReminders() {
 }
 
 console.log('========================================');
-console.log('📅 日程管理系统 - 每日自动提醒 V2');
+console.log('📅 日程管理系统 - 每日自动提醒');
 console.log('========================================');
 checkAndSendReminders();

@@ -18,7 +18,8 @@ function sendWeChatNotification(title, content, callback) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Content-Length': Buffer.byteLength(postData)
-        }
+        },
+        rejectUnauthorized: false  // 禁用SSL证书验证（适用于老系统）
     };
     var req = https.request(options, function(res) {
         var data = '';
