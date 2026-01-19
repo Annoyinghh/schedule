@@ -524,11 +524,14 @@
             <div class="section">
                 <h2>🔔 通知设置</h2>
                 <div style="background: white; padding: 12px; border-radius: 8px;">
-                    <p><strong>📱 手机：</strong><span id="phoneDisplay"></span></p>
-                    <p><strong>📧 邮箱：</strong><span id="emailDisplay"></span></p>
+                    <p><strong>📱 手机：</strong> 15914969166</p>
+                    <p><strong>📧 邮箱：</strong> 1875512848@qq.com</p>
                     <p><strong>⏰ 提醒时间：</strong>提前 14天、7天、3天、1天</p>
-                    <button class="edit-btn" onclick="editNotificationSettings()">✏️ 修改通知方式</button>
-                    <button class="save-btn" onclick="testNotification()" style="margin-left: 10px;">🧪 测试通知</button>
+                    <p style="margin-top: 10px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 0.9em;">
+                        <strong>✅ Server酱已配置</strong><br>
+                        通知将发送到微信「方糖服务号」
+                    </p>
+                    <button class="save-btn" onclick="testWeChatNotification()" style="margin-top: 10px;">🧪 测试微信通知</button>
                 </div>
             </div>
 
@@ -625,7 +628,6 @@
             renderMilestones();
             updateStats();
             showModeMessage();
-            displayNotificationSettings();
             checkUpcomingReminders();
         }
 
@@ -802,31 +804,71 @@
             checkUpcomingReminders();
         }
 
-        // 显示通知设置
-        function displayNotificationSettings() {
-            document.getElementById('phoneDisplay').textContent = baseConfig.notifications.phone;
-            document.getElementById('emailDisplay').textContent = baseConfig.notifications.email;
-        }
+        // 测试微信通知
+        async function testWeChatNotification() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN');
+            
+            const title = '📅 日程管理系统 - 测试通知';
+            const content = `
+## 测试消息
 
-        // 编辑通知设置
-        function editNotificationSettings() {
-            const phone = prompt('请输入手机号：', baseConfig.notifications.phone);
-            if (phone) {
-                baseConfig.notifications.phone = phone;
-                const email = prompt('请输入邮箱：', baseConfig.notifications.email);
-                if (email) {
-                    baseConfig.notifications.email = email;
-                    localStorage.setItem('notificationSettings', JSON.stringify(baseConfig.notifications));
-                    displayNotificationSettings();
-                    alert('✅ 通知设置已更新！');
+这是一条测试通知，发送时间：**${timeStr}**
+
+### ✅ 系统信息
+- Server酱配置成功
+- 微信通知已启用
+- 可以接收日程提醒
+
+### 📋 功能说明
+系统会在以下情况自动发送通知：
+1. 重要事件提前 14/7/3/1 天提醒
+2. 插入临时事件时提醒
+3. 自动进入冲刺模式时提醒
+
+### 📱 联系方式
+- 手机：15914969166
+- 邮箱：1875512848@qq.com
+
+---
+*来自日程管理系统*
+            `;
+            
+            // 显示加载提示
+            const originalText = event.target.textContent;
+            event.target.textContent = '⏳ 发送中...';
+            event.target.disabled = true;
+            
+            try {
+                const success = await sendWeChatNotification(title, content);
+                
+                if (success) {
+                    alert('✅ 测试通知已发送成功！\n\n请查看你的微信「方糖服务号」\n\n如果没有收到，请检查：\n1. 是否关注了「方糖服务号」\n2. SendKey 是否正确\n3. 网络连接是否正常');
+                } else {
+                    alert('❌ 通知发送失败\n\n可能的原因：\n1. SendKey 配置错误\n2. 网络连接问题\n3. Server酱服务异常\n\n请检查浏览器控制台查看详细错误信息');
                 }
+            } catch (error) {
+                console.error('测试通知失败:', error);
+                alert('❌ 发送异常：' + error.message);
+            } finally {
+                event.target.textContent = originalText;
+                event.target.disabled = false;
             }
         }
 
-        // 测试通知
+        // 显示通知设置（已简化，直接显示固定信息）
+        function displayNotificationSettings() {
+            // 不需要动态显示，已在HTML中写死
+        }
+
+        // 编辑通知设置（已移除，使用固定配置）
+        function editNotificationSettings() {
+            alert('通知设置已固定配置\n\n📱 手机：15914969166\n📧 邮箱：1875512848@qq.com\n🔔 Server酱：已启用');
+        }
+
+        // 测试通知（旧版本，保留兼容）
         function testNotification() {
-            const message = `📱 测试通知\n\n这是一条测试消息。\n\n如需真实通知，请使用以下方式：\n\n1. 短信通知：使用云服务（如阿里云、腾讯云）的短信API\n2. 邮件通知：使用SMTP服务或邮件API\n3. 微信通知：使用Server酱或企业微信\n\n当前设置：\n📱 ${baseConfig.notifications.phone}\n📧 ${baseConfig.notifications.email}`;
-            alert(message);
+            testWeChatNotification();
         }
 
         // 检查即将到来的提醒
