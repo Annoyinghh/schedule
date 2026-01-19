@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试微信通知</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .info p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 微信通知测试</h1>
+        
+        <div class="info">
+            <p><strong>📱 SendKey:</strong> SCT310265TyJ4D67VAfJfQTSj87381qEAY</p>
+            <p><strong>📧 接收方式:</strong> 微信「方糖服务号」</p>
+            <p><strong>⏰ 测试内容:</strong> 发送一条测试消息到你的微信</p>
+        </div>
+        
+        <button class="btn" onclick="testNotification()">🧪 发送测试通知</button>
+        <button class="btn" onclick="testDailyReminder()">📅 测试每日提醒</button>
+        <button class="btn" onclick="testEventReminder()">🎯 测试事件提醒</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+    
+    <script src="notification_service.js"></script>
+    <script>
+        async function testNotification() {
+            showLoading();
+            
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN');
+            
+            const title = '📅 日程管理系统 - 测试通知';
+            const content = `
+## 测试消息
+
+这是一条测试通知，发送时间：**${timeStr}**
+
+### ✅ 系统信息
+- Server酱配置成功
+- 微信通知已启用
+- 可以接收日程提醒
+
+### 📋 功能说明
+系统会在以下情况自动发送通知：
+1. 重要事件提前 14/7/3/1 天提醒
+2. 每日早晨 8:00 发送今日计划
+3. 临时插入事件时提醒
+
+---
+*来自日程管理系统*
+            `;
+            
+            const success = await sendWeChatNotification(title, content);
+            
+            if (success) {
+                showResult('success', '✅ 测试通知已发送成功！\n\n请查看你的微信「方糖服务号」');
+            } else {
+                showResult('error', '❌ 通知发送失败\n\n请检查 SendKey 是否正确或网络连接');
+            }
+        }
+        
+        async function testDailyReminder() {
+            showLoading();
+            
+            const today = new Date();
+            const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            const title = `📅 每日提醒 - ${dateStr} ${dayNames[today.getDay()]}`;
+            const content = `
+## 今日计划
+
+### ⏰ 时间安排
+- **07:30-11:30** 高能时段 - 核心考点攻坚
+- **13:30-17:30** 实战时段 - 刷题/面试
+- **19:00-22:30** 复盘时段 - 整理笔记
+- **23:00-24:00** 必做时段 - 计算机技术练习
+
+### 🎯 今日重点
+- 考点学习
+- 错题整理
+- 技术练习
+
+### 💪 加油！
+今天也要元气满满哦！
+
+---
+*来自日程管理系统*
+            `;
+            
+            const success = await sendWeChatNotification(title, content);
+            
+            if (success) {
+                showResult('success', '✅ 每日提醒已发送！\n\n这就是你每天早上会收到的提醒格式');
+            } else {
+                showResult('error', '❌ 发送失败，请检查配置');
+            }
+        }
+        
+        async function testEventReminder() {
+            showLoading();
+            
+            const title = '🔔 重要事件提醒';
+            const content = `
+## 距离「春季大考」还有 7 天！
+
+### 📅 事件信息
+- **日期:** 2026-03-15
+- **类型:** 考试
+- **备注:** 3月1日开始停止娱乐，全力冲刺
+
+### ⚠️ 提醒
+这是提前 7 天的提醒，请做好准备！
+
+### 📝 建议
+- 复习重点知识
+- 整理错题本
+- 调整作息时间
+- 准备考试用品
+
+---
+*来自日程管理系统*
+            `;
+            
+            const success = await sendWeChatNotification(title, content);
+            
+            if (success) {
+                showResult('success', '✅ 事件提醒已发送！\n\n重要日期前会自动发送这样的提醒');
+            } else {
+                showResult('error', '❌ 发送失败，请检查配置');
+            }
+        }
+        
+        function showLoading() {
+            const result = document.getElementById('result');
+            result.className = 'result';
+            result.style.display = 'block';
+            result.textContent = '⏳ 正在发送通知...';
+        }
+        
+        function showResult(type, message) {
+            const result = document.getElementById('result');
+            result.className = `result ${type}`;
+            result.style.display = 'block';
+            result.textContent = message;
+        }
+    </script>
+</body>
+</html>
