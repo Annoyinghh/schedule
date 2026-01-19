@@ -26,7 +26,7 @@ echo ""
 echo "📦 步骤 3/5: 停止旧的Nginx..."
 sudo service nginx stop 2>/dev/null || true
 
-# 4. 配置Nginx
+# 4. 配置Nginx（兼容老版本，不使用always参数）
 echo ""
 echo "📦 步骤 4/5: 配置Nginx..."
 sudo tee /etc/nginx/sites-available/schedule > /dev/null <<'EOF'
@@ -41,15 +41,15 @@ server {
 
     location /api/ {
         if ($request_method = 'OPTIONS') {
-            add_header 'Access-Control-Allow-Origin' '*' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Content-Type' always;
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Content-Type';
             return 204;
         }
 
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Content-Type' always;
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'Content-Type';
 
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
