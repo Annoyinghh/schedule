@@ -2,17 +2,30 @@
 
 /**
  * 日程管理系统 - 每日自动提醒脚本（兼容老版本Node.js）
+ * 支持：微信通知（Server酱）+ 邮箱通知（QQ邮箱）
  */
 
 var https = require('https');
 var fs = require('fs');
 var path = require('path');
+var tls = require('tls');
+var net = require('net');
 
 // 配置
 var CONFIG = {
     SERVER_CHAN_KEY: 'SCT310265TyJ4D67VAfJfQTSj87381qEAY',
     REMINDER_DAYS: [14, 7, 3, 1],
-    DATA_FILE: path.join(__dirname, 'events_data.json')
+    DATA_FILE: path.join(__dirname, 'events_data.json'),
+    // 邮箱配置
+    EMAIL: {
+        from: '1875512848@qq.com',
+        to: '1875512848@qq.com',
+        password: 'ofntgkurlfujgbba', // QQ邮箱授权码
+        smtp: {
+            host: 'smtp.qq.com',
+            port: 465
+        }
+    }
 };
 
 // 读取事件数据
@@ -38,6 +51,80 @@ function loadEvents() {
         ],
         calendarEvents: {}
     };
+}
+
+// 发送邮件通知（使用原生SMTP，兼容老版本Node.js）
+function sendEmailNotification(subject, content, callback) {
+    console.log('📧 准备发送邮件...');
+    
+    var socket = tls.connect(CONFIG.EMAIL.smtp.port, CONFIG.EMAIL.smtp.host, {
+        rejectUnauthorized: false
+    }, function() {
+        console.log('📧 已连接到SMTP服务器');
+    });
+    
+    var step = 0;
+    var buffer = '';
+    
+    socket.on('data', function(data) {
+        buffer += data.toString();
+        var lines = buffer.split('\r\n');
+        
+        for (var i = 0; i < lines.length - 1; i++) {
+            var line = lines[i];
+            console.log('< ' + line);
+            
+            if (step === 0 && line.indexOf('220') === 0) {
+                socket.write('EHLO localhost\r\n');
+                step = 1;
+            } else if (step === 1 && line.indexOf('250') === 0) {
+                socket.write('AUTH LOGIN\r\n');
+                step = 2;
+            } else if (step === 2 && line.indexOf('334') === 0) {
+                socket.write(Buffer.from(CONFIG.EMAIL.from).toString('base64') + '\r\n');
+                step = 3;
+            } else if (step === 3 && line.indexOf('334') === 0) {
+                socket.write(Buffer.from(CONFIG.EMAIL.password).toString('base64') + '\r\n');
+                step = 4;
+            } else if (step === 4 && line.indexOf('235') === 0) {
+                socket.write('MAIL FROM:<' + CONFIG.EMAIL.from + '>\r\n');
+                step = 5;
+            } else if (step === 5 && line.indexOf('250') === 0) {
+                socket.write('RCPT TO:<' + CONFIG.EMAIL.to + '>\r\n');
+                step = 6;
+            } else if (step === 6 && line.indexOf('250') === 0) {
+                socket.write('DATA\r\n');
+                step = 7;
+            } else if (step === 7 && line.indexOf('354') === 0) {
+                var emailContent = 'From: ' + CONFIG.EMAIL.from + '\r\n' +
+                    'To: ' + CONFIG.EMAIL.to + '\r\n' +
+                    'Subject: =?UTF-8?B?' + Buffer.from(subject).toString('base64') + '?=\r\n' +
+                    'Content-Type: text/plain; charset=UTF-8\r\n' +
+                    '\r\n' +
+                    content + '\r\n.\r\n';
+                socket.write(emailContent);
+                step = 8;
+            } else if (step === 8 && line.indexOf('250') === 0) {
+                console.log('✅ 邮件发送成功');
+                socket.write('QUIT\r\n');
+                callback(true);
+                socket.end();
+            }
+        }
+        
+        buffer = lines[lines.length - 1];
+    });
+    
+    socket.on('error', function(err) {
+        console.error('❌ 邮件发送失败:', err.message);
+        callback(false);
+    });
+    
+    socket.setTimeout(30000, function() {
+        console.error('❌ 邮件发送超时');
+        socket.end();
+        callback(false);
+    });
 }
 
 // 发送微信通知
@@ -143,9 +230,16 @@ function checkAndSendReminders() {
             var reminder = reminders[index];
             var title = '🔔 日程提醒 (' + reminder.daysUntil + '天后)';
             var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n*来自云服务器自动提醒*';
-            sendWeChatNotification(title, content, function() {
-                index++;
-                setTimeout(sendNext, 1000);
+            var emailContent = '重要提醒\n\n距离「' + reminder.data.name + '」还有 ' + reminder.daysUntil + ' 天！\n\n日期：' + reminder.data.date + '\n' + (reminder.data.note ? '备注：' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n来自云服务器自动提醒';
+            
+            // 1. 发送微信通知
+            sendWeChatNotification(title, content, function(wechatSuccess) {
+                // 2. 发送邮件通知
+                sendEmailNotification(title, emailContent, function(emailSuccess) {
+                    console.log('📊 发送结果: 微信=' + (wechatSuccess ? '✅' : '❌') + ', 邮件=' + (emailSuccess ? '✅' : '❌'));
+                    index++;
+                    setTimeout(sendNext, 2000); // 等待2秒再发送下一条
+                });
             });
         }
         sendNext();
