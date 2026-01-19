@@ -532,12 +532,12 @@
                 <div style="background: white; padding: 12px; border-radius: 8px;">
                     <p><strong>📱 手机：</strong> 15914969166</p>
                     <p><strong>📧 邮箱：</strong> 1875512848@qq.com</p>
-                    <p><strong>⏰ 提醒时间：</strong>提前 14天、7天、3天、1天</p>
+                    <p><strong>⏰ 提醒时间：</strong>每天早上 7:00</p>
+                    <p><strong>📅 提醒规则：</strong>提前 14天、7天、3天、1天</p>
                     <p style="margin-top: 10px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 0.9em;">
-                        <strong>✅ Server酱已配置</strong><br>
-                        通知将发送到微信「方糖服务号」
+                        <strong>✅ 云服务器自动提醒</strong><br>
+                        通知将通过云服务器自动发送到微信「方糖服务号」
                     </p>
-                    <button class="save-btn" onclick="testWeChatNotification()" style="margin-top: 10px;">🧪 测试微信通知</button>
                 </div>
             </div>
 
@@ -641,13 +641,9 @@
             renderMilestones();
             updateStats();
             showModeMessage();
-            checkUpcomingReminders();
             
-            // 设置定时检查（每小时检查一次）
-            setInterval(() => {
-                console.log('⏰ 定时检查提醒...');
-                checkUpcomingReminders();
-            }, 60 * 60 * 1000); // 每小时检查一次
+            console.log('✅ 日程管理系统已加载');
+            console.log('📅 提醒功能由云服务器负责（每天早上7:00）');
         }
 
         // 加载月度事件
@@ -830,39 +826,13 @@
                         eventDate.setHours(0, 0, 0, 0);
                         const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
                         
-                        // 如果是未来的事件，立即发送一次提醒
-                        if (daysUntil > 0 && daysUntil <= 14) {
-                            console.log('📤 准备发送新事件通知...', { dateStr, event: newEvent.trim(), daysUntil });
-                            
-                            // 延迟一下确保 sendWeChatNotification 已加载
-                            setTimeout(async () => {
-                                if (typeof sendWeChatNotification !== 'undefined') {
-                                    const success = await sendWeChatNotification(
-                                        '📅 新事件提醒',
-                                        `## 已添加新事件\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n**距离：** ${daysUntil} 天\n\n系统会在提前 14/7/3/1 天自动提醒。`
-                                    );
-                                    
-                                    if (success) {
-                                        alert(`✅ 已设置事件，并发送了微信提醒！\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
-                                    } else {
-                                        alert(`⚠️ 事件已设置，但微信通知发送失败\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
-                                    }
-                                } else {
-                                    console.error('❌ sendWeChatNotification 未定义');
-                                    alert(`⚠️ 事件已设置\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。\n\n（通知功能未加载）`);
-                                }
-                            }, 100);
-                        } else {
-                            alert(`✅ 已设置事件！\n\n${daysUntil > 14 ? '距离较远，' : ''}系统会在提前 14/7/3/1 天自动提醒。`);
-                        }
+                        // 提示用户事件已设置
+                        alert(`✅ 已设置事件！\n\n距离：${daysUntil} 天\n云服务器会在每天早上7点自动检查并提醒。`);
                     } else {
                         delete monthEvents[dateStr];
                     }
                     saveMonthEvents();
                     renderCalendar();
-                    
-                    // 重新检查提醒
-                    checkUpcomingReminders();
                 }
             } else {
                 // 调整时间轴
@@ -1416,15 +1386,6 @@
                     // 距离考试14天内自动进入冲刺模式
                     if (daysUntil > 0 && daysUntil <= 14) {
                         console.log(`🔥 自动冲刺：距离「${milestone.name}」还有 ${daysUntil} 天，自动进入冲刺模式`);
-                        
-                        // 发送微信通知
-                        if (typeof sendWeChatNotification !== 'undefined') {
-                            sendWeChatNotification(
-                                '🔥 自动进入冲刺模式',
-                                `## 考试临近提醒\n\n距离「**${milestone.name}**」还有 **${daysUntil}** 天！\n\n系统已自动切换为冲刺模式：\n- 取消兴趣时间\n- 增加学习强度\n- 全力备考\n\n加油！💪`
-                            );
-                        }
-                        
                         return true;
                     }
                 }
@@ -1576,10 +1537,6 @@
             // 发送微信通知
             if (typeof sendWeChatNotification !== 'undefined') {
                 const today = new Date().toLocaleDateString('zh-CN');
-                sendWeChatNotification(
-                    '📅 临时事件提醒',
-                    `## 已插入临时事件\n\n**日期：** ${today}\n**时间：** ${timeRange}\n**事件：** ${taskName}\n\n请注意时间安排！`
-                );
             }
         }
 
@@ -1741,70 +1698,5 @@
         init();
     </script>
     
-    <!-- Server酱微信通知功能 -->
-    <script>
-        // Server酱配置
-        const SERVER_CHAN_KEY = 'SCT310265TyJ4D67VAfJfQTSj87381qEAY';
-
-        // 发送微信通知
-        async function sendWeChatNotification(title, content) {
-            try {
-                console.log('📤 正在发送微信通知...', { title, content });
-                
-                // 使用 FormData 格式发送
-                const formData = new URLSearchParams();
-                formData.append('title', title);
-                formData.append('desp', content);
-                
-                const response = await fetch(`https://sctapi.ftqq.com/${SERVER_CHAN_KEY}.send`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData
-                });
-                
-                const result = await response.json();
-                console.log('📥 Server酱响应:', result);
-                
-                if (result.code === 0) {
-                    console.log('✅ 微信通知发送成功！PushID:', result.data.pushid);
-                    return true;
-                } else {
-                    console.error('❌ 微信通知发送失败:', result.message);
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ 微信通知发送异常:', error);
-                return false;
-            }
-        }
-
-        // 浏览器通知
-        function sendBrowserNotification(title, body) {
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    new Notification(title, {
-                        body: body,
-                        icon: '📅',
-                        badge: '🔔'
-                    });
-                    return true;
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            new Notification(title, {
-                                body: body,
-                                icon: '📅'
-                            });
-                        }
-                    });
-                }
-            }
-            return false;
-        }
-
-        console.log('✅ Server酱通知服务已加载');
-    </script>
 </body>
 </html>
