@@ -642,6 +642,9 @@
             updateStats();
             showModeMessage();
             
+            // 从服务器加载打卡数据
+            loadCheckinsFromServer();
+            
             // 请求浏览器通知权限
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
@@ -654,6 +657,7 @@
             console.log('✅ 日程管理系统已加载');
             console.log('📅 事件提醒由云服务器负责（每天早上7:00）');
             console.log('⏰ 打卡提醒已启动（每10分钟检查一次）');
+            console.log('💾 数据存储：云服务器');
         }
 
         // 加载月度事件
@@ -1620,12 +1624,73 @@
             }
         }
 
-        // 切换任务状态
-        function toggleTask(key) {
+        // 切换任务状态（同步到服务器）
+        async function toggleTask(key) {
+            // 解析key: task_日期_索引
+            const parts = key.split('_');
+            const taskIndex = parseInt(parts[parts.length - 1]);
+            const date = new Date().toISOString().split('T')[0];
+            
             const current = localStorage.getItem(key) === 'true';
-            localStorage.setItem(key, !current);
+            const newState = !current;
+            
+            // 先更新本地
+            localStorage.setItem(key, newState);
             renderTimeline();
             updateStats();
+            
+            // 同步到服务器
+            try {
+                const response = await fetch(`${API_CONFIG.baseURL}/checkin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        taskIndex: taskIndex,
+                        completed: newState
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ 打卡状态已同步到服务器');
+                } else {
+                    console.warn('⚠️ 打卡状态同步失败');
+                }
+            } catch (error) {
+                console.warn('⚠️ 无法连接到服务器:', error.message);
+            }
+        }
+        
+        // 从服务器加载打卡数据
+        async function loadCheckinsFromServer() {
+            if (!API_CONFIG.enabled) return;
+            
+            try {
+                const response = await fetch(`${API_CONFIG.baseURL}/checkins`);
+                if (response.ok) {
+                    const result = await response.json();
+                    const checkins = result.data;
+                    
+                    // 同步到localStorage
+                    const today = new Date().toDateString();
+                    const date = new Date().toISOString().split('T')[0];
+                    
+                    if (checkins[date]) {
+                        Object.keys(checkins[date]).forEach(taskIndex => {
+                            const key = `task_${today}_${taskIndex}`;
+                            localStorage.setItem(key, checkins[date][taskIndex]);
+                        });
+                    }
+                    
+                    console.log('✅ 打卡数据已从服务器加载');
+                    renderTimeline();
+                    updateStats();
+                }
+            } catch (error) {
+                console.warn('⚠️ 无法从服务器加载打卡数据:', error.message);
+            }
         }
 
         // 更新统计

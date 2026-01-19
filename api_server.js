@@ -13,8 +13,34 @@ var notification = require('./notification.js');
 var CONFIG = {
     PORT: 3000,
     DATA_FILE: path.join(__dirname, 'events_data.json'),
+    CHECKIN_FILE: path.join(__dirname, 'checkin_data.json'),
     REMINDER_DAYS: [14, 7, 3, 1]
 };
+
+// 读取打卡数据
+function loadCheckins() {
+    try {
+        if (fs.existsSync(CONFIG.CHECKIN_FILE)) {
+            var data = fs.readFileSync(CONFIG.CHECKIN_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) {
+        console.error('读取打卡数据失败:', e);
+    }
+    return {};
+}
+
+// 保存打卡数据
+function saveCheckins(data) {
+    try {
+        fs.writeFileSync(CONFIG.CHECKIN_FILE, JSON.stringify(data, null, 2), 'utf8');
+        console.log('✅ 打卡数据已保存');
+        return true;
+    } catch (e) {
+        console.error('❌ 保存打卡数据失败:', e);
+        return false;
+    }
+}
 
 // 读取事件数据
 function loadEvents() {
@@ -229,6 +255,44 @@ var server = http.createServer(function(req, res) {
         return;
     }
     
+    // 获取打卡数据
+    if (method === 'GET' && url === '/api/checkins') {
+        var checkins = loadCheckins();
+        sendResponse(res, 200, { success: true, data: checkins });
+        return;
+    }
+    
+    // 更新打卡状态
+    if (method === 'POST' && url === '/api/checkin') {
+        var body = '';
+        req.on('data', function(chunk) { body += chunk.toString(); });
+        req.on('end', function() {
+            try {
+                var parsed = JSON.parse(body);
+                var date = parsed.date;
+                var taskIndex = parsed.taskIndex;
+                var completed = parsed.completed;
+                
+                var checkins = loadCheckins();
+                if (!checkins[date]) {
+                    checkins[date] = {};
+                }
+                checkins[date][taskIndex] = completed;
+                
+                if (saveCheckins(checkins)) {
+                    console.log('📥 更新打卡:', date, 'task', taskIndex, completed ? '✓' : '✗');
+                    sendResponse(res, 200, { success: true, message: '打卡成功' });
+                } else {
+                    sendResponse(res, 500, { success: false, message: '保存失败' });
+                }
+            } catch (e) {
+                console.error('❌ 解析数据失败:', e);
+                sendResponse(res, 400, { success: false, message: '数据格式错误' });
+            }
+        });
+        return;
+    }
+    
     // 404
     sendResponse(res, 404, { success: false, message: '接口不存在' });
 });
@@ -247,6 +311,8 @@ server.listen(CONFIG.PORT, '0.0.0.0', function() {
     console.log('  POST /api/events/sync     - 同步所有事件');
     console.log('  POST /api/milestones      - 添加里程碑');
     console.log('  POST /api/calendar        - 添加/更新月历事件');
+    console.log('  GET  /api/checkins        - 获取打卡数据');
+    console.log('  POST /api/checkin         - 更新打卡状态');
     console.log('');
     console.log('按 Ctrl+C 停止服务器');
     console.log('========================================');
