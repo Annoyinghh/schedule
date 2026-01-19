@@ -7,36 +7,15 @@ echo "========================================="
 echo "📅 日程管理系统 - 完整部署"
 echo "========================================="
 
-# 1. 创建工作目录
+# 3. 启动API服务器（后台运行）
 echo ""
-echo "📦 步骤 1/5: 创建工作目录..."
-mkdir -p ~/schedule-reminder
-cd ~/schedule-reminder
-
-# 2. 下载文件
-echo ""
-echo "📦 步骤 2/5: 下载文件..."
-echo "  - 下载 api_server.js..."
-wget -q https://raw.githubusercontent.com/Annoyinghh/schedule/main/api_server.js
-echo "  - 下载 cloud_reminder.js..."
-wget -q https://raw.githubusercontent.com/Annoyinghh/schedule/main/cloud_reminder.js
-
-# 3. 停止旧进程
-echo ""
-echo "📦 步骤 3/5: 停止旧进程..."
-pkill -f api_server.js
-pkill -f cloud_reminder.js
-sleep 2
-
-# 4. 启动API服务器（后台运行）
-echo ""
-echo "📦 步骤 4/5: 启动API服务器..."
+echo "📦 步骤 3/4: 启动API服务器..."
 nohup node api_server.js > api.log 2>&1 &
 sleep 2
 
-# 5. 设置定时任务（每天早上7:00）
+# 4. 设置定时任务（每天早上7:00）
 echo ""
-echo "📦 步骤 5/5: 设置定时任务..."
+echo "📦 步骤 4/4: 设置定时任务..."
 (crontab -l 2>/dev/null | grep -v "cloud_reminder"; echo "0 7 * * * cd ~/schedule-reminder && node cloud_reminder.js >> reminder.log 2>&1") | crontab -
 
 # 验证部署
