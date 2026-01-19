@@ -20,7 +20,10 @@ function loadEvents() {
     try {
         if (fs.existsSync(CONFIG.DATA_FILE)) {
             var data = fs.readFileSync(CONFIG.DATA_FILE, 'utf8');
+            console.log('✅ 从云服务器读取数据: ' + CONFIG.DATA_FILE);
             return JSON.parse(data);
+        } else {
+            console.log('⚠️ 云服务器数据文件不存在，使用默认数据');
         }
     } catch (e) {
         console.error('❌ 读取数据失败:', e);
@@ -139,7 +142,8 @@ function checkAndSendReminders() {
             }
             var reminder = reminders[index];
             var title = '🔔 日程提醒 (' + reminder.daysUntil + '天后)';
-            var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪';
+            var dataSource = fs.existsSync(CONFIG.DATA_FILE) ? '云服务器同步数据' : '默认数据';
+            var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n*数据来源：' + dataSource + '*';
             sendWeChatNotification(title, content, function() {
                 index++;
                 setTimeout(sendNext, 1000);
