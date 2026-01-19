@@ -757,13 +757,28 @@
                         
                         // 如果是未来的事件，立即发送一次提醒
                         if (daysUntil > 0 && daysUntil <= 14) {
-                            if (typeof sendWeChatNotification !== 'undefined') {
-                                sendWeChatNotification(
-                                    '📅 新事件提醒',
-                                    `## 已添加新事件\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n**距离：** ${daysUntil} 天\n\n系统会在提前 14/7/3/1 天自动提醒。`
-                                );
-                            }
-                            alert(`✅ 已设置事件，并发送了微信提醒！\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
+                            console.log('📤 准备发送新事件通知...', { dateStr, event: newEvent.trim(), daysUntil });
+                            
+                            // 延迟一下确保 sendWeChatNotification 已加载
+                            setTimeout(async () => {
+                                if (typeof sendWeChatNotification !== 'undefined') {
+                                    const success = await sendWeChatNotification(
+                                        '📅 新事件提醒',
+                                        `## 已添加新事件\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n**距离：** ${daysUntil} 天\n\n系统会在提前 14/7/3/1 天自动提醒。`
+                                    );
+                                    
+                                    if (success) {
+                                        alert(`✅ 已设置事件，并发送了微信提醒！\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
+                                    } else {
+                                        alert(`⚠️ 事件已设置，但微信通知发送失败\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
+                                    }
+                                } else {
+                                    console.error('❌ sendWeChatNotification 未定义');
+                                    alert(`⚠️ 事件已设置\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。\n\n（通知功能未加载）`);
+                                }
+                            }, 100);
+                        } else {
+                            alert(`✅ 已设置事件！\n\n${daysUntil > 14 ? '距离较远，' : ''}系统会在提前 14/7/3/1 天自动提醒。`);
                         }
                     } else {
                         delete monthEvents[dateStr];
