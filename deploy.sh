@@ -38,7 +38,7 @@ sleep 3
 # 5. 设置定时任务（每天早上7:00）
 echo ""
 echo "📦 步骤 5/5: 设置定时任务..."
-(crontab -l 2>/dev/null | grep -v "cloud_reminder.js"; echo "0 7 * * * cd ~/schedule-reminder && /usr/bin/node cloud_reminder.js >> ~/schedule-reminder/reminder.log 2>&1") | crontab -
+(crontab -l 2>/dev/null | grep -v "cloud_reminder.js"; echo "0 7 * * * cd ~/schedule-reminder && node cloud_reminder.js >> ~/schedule-reminder/reminder.log 2>&1") | crontab -
 
 # 验证部署
 echo ""
