@@ -7,11 +7,13 @@
 var http = require('http');
 var fs = require('fs');
 var path = require('path');
+var notification = require('./notification.js');
 
 // 配置
 var CONFIG = {
     PORT: 3000,
-    DATA_FILE: path.join(__dirname, 'events_data.json')
+    DATA_FILE: path.join(__dirname, 'events_data.json'),
+    REMINDER_DAYS: [14, 7, 3, 1]
 };
 
 // 读取事件数据
@@ -39,6 +41,68 @@ function saveEvents(data) {
     } catch (e) {
         console.error('❌ 保存数据失败:', e);
         return false;
+    }
+}
+
+// 计算日期差
+function getDaysDiff(dateStr) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var targetDate = new Date(dateStr);
+    targetDate.setHours(0, 0, 0, 0);
+    return Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+}
+
+// 检查并发送即时提醒
+function checkAndSendInstantReminders(data) {
+    console.log('🔍 检查是否需要即时提醒...');
+    
+    var reminders = [];
+    var i, daysUntil;
+    
+    // 检查里程碑
+    for (i = 0; i < data.milestones.length; i++) {
+        var milestone = data.milestones[i];
+        daysUntil = getDaysDiff(milestone.date);
+        if (CONFIG.REMINDER_DAYS.indexOf(daysUntil) !== -1) {
+            reminders.push({ type: 'milestone', data: milestone, daysUntil: daysUntil });
+        }
+    }
+    
+    // 检查月历事件
+    for (var dateStr in data.calendarEvents) {
+        var eventName = data.calendarEvents[dateStr];
+        daysUntil = getDaysDiff(dateStr);
+        if (CONFIG.REMINDER_DAYS.indexOf(daysUntil) !== -1) {
+            reminders.push({ 
+                type: 'calendar', 
+                data: { date: dateStr, name: eventName, note: '来自月历' },
+                daysUntil: daysUntil 
+            });
+        }
+    }
+    
+    // 发送提醒
+    if (reminders.length > 0) {
+        console.log('📤 发现 ' + reminders.length + ' 条需要提醒的事件');
+        var index = 0;
+        function sendNext() {
+            if (index >= reminders.length) {
+                console.log('✅ 即时提醒发送完成');
+                return;
+            }
+            var reminder = reminders[index];
+            var title = '🔔 日程提醒 (' + reminder.daysUntil + '天后)';
+            var content = '## 重要提醒\n\n距离「**' + reminder.data.name + '**」还有 **' + reminder.daysUntil + '** 天！\n\n**日期：** ' + reminder.data.date + '\n' + (reminder.data.note ? '**备注：** ' + reminder.data.note + '\n' : '') + '\n请做好准备！💪\n\n---\n*来自云服务器即时提醒*';
+            
+            notification.sendDualNotification(title, content, function() {
+                index++;
+                setTimeout(sendNext, 2000);
+            });
+        }
+        sendNext();
+    } else {
+        console.log('✅ 暂无需要即时提醒的事件');
     }
 }
 
@@ -88,6 +152,10 @@ var server = http.createServer(function(req, res) {
                         milestones: data.milestones.length,
                         calendarEvents: Object.keys(data.calendarEvents).length
                     });
+                    
+                    // 立即检查并发送提醒
+                    checkAndSendInstantReminders(data);
+                    
                     sendResponse(res, 200, { success: true, message: '同步成功' });
                 } else {
                     sendResponse(res, 500, { success: false, message: '保存失败' });

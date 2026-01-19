@@ -642,8 +642,18 @@
             updateStats();
             showModeMessage();
             
+            // 请求浏览器通知权限
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            // 启动打卡提醒（每10分钟检查一次）
+            setInterval(checkTaskReminders, 10 * 60 * 1000);
+            checkTaskReminders(); // 立即检查一次
+            
             console.log('✅ 日程管理系统已加载');
-            console.log('📅 提醒功能由云服务器负责（每天早上7:00）');
+            console.log('📅 事件提醒由云服务器负责（每天早上7:00）');
+            console.log('⏰ 打卡提醒已启动（每10分钟检查一次）');
         }
 
         // 加载月度事件
@@ -1050,6 +1060,67 @@
 
         // 提醒功能已由云服务器负责，网页端不再处理提醒逻辑
         // 云服务器会在每天早上7:00自动检查并发送提醒（微信+邮件）
+
+        // 打卡提醒功能
+        function checkTaskReminders() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute; // 转换为分钟数
+            const today = now.toDateString();
+            
+            console.log('⏰ 检查打卡提醒...', now.toLocaleTimeString('zh-CN'));
+            
+            config.dailyTimeline.forEach((item, index) => {
+                // 解析时间段
+                const timeMatch = item.time.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                if (!timeMatch) return;
+                
+                const startHour = parseInt(timeMatch[1]);
+                const startMinute = parseInt(timeMatch[2]);
+                const endHour = parseInt(timeMatch[3]);
+                const endMinute = parseInt(timeMatch[4]);
+                
+                const startTime = startHour * 60 + startMinute;
+                const endTime = endHour * 60 + endMinute;
+                
+                // 检查是否已打卡
+                const key = `task_${today}_${index}`;
+                const completed = localStorage.getItem(key) === 'true';
+                
+                // 如果未打卡且距离结束时间还有10分钟
+                const timeUntilEnd = endTime - currentTime;
+                if (!completed && timeUntilEnd > 0 && timeUntilEnd <= 10) {
+                    // 检查今天是否已经提醒过这个任务
+                    const reminderKey = `task_reminder_${today}_${index}`;
+                    const alreadyReminded = localStorage.getItem(reminderKey) === 'true';
+                    
+                    if (alreadyReminded) {
+                        return; // 今天已经提醒过，跳过
+                    }
+                    
+                    const message = `⏰ 打卡提醒\n\n「${item.tag}」时间段即将结束（还剩${timeUntilEnd}分钟）\n\n请记得打卡！`;
+                    
+                    console.log('🔔 发送打卡提醒:', item.tag, '还剩', timeUntilEnd, '分钟');
+                    
+                    // 发送浏览器通知
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('⏰ 打卡提醒', {
+                            body: `「${item.tag}」时间段即将结束（还剩${timeUntilEnd}分钟）\n请记得打卡！`,
+                            icon: '⏰',
+                            badge: '🔔',
+                            requireInteraction: true // 需要用户交互才关闭
+                        });
+                        
+                        // 标记为已提醒
+                        localStorage.setItem(reminderKey, 'true');
+                    }
+                    
+                    // 同时在控制台提醒
+                    console.warn('🔔🔔🔔 打卡提醒:', item.tag, '- 还剩', timeUntilEnd, '分钟！');
+                }
+            });
+        }
 
         
 
