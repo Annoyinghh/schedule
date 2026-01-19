@@ -1054,16 +1054,46 @@
             return message;
         }
 
-        // 检查是否在冲刺期
+        // 检查是否在冲刺期（自动检测考试临近）
         function checkSprintMode() {
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             
+            // 1. 检查预设的冲刺期
             for (let period of baseConfig.sprintPeriods) {
                 if (todayStr >= period.start && todayStr <= period.end) {
                     return true;
                 }
             }
+            
+            // 2. 自动检测：距离任何考试14天内自动进入冲刺模式
+            for (let milestone of baseConfig.milestones) {
+                // 只检查包含"考试"、"考"、"大考"关键词的事件
+                if (milestone.name.includes('考试') || milestone.name.includes('大考') || milestone.name.includes('国考') || milestone.name.includes('省考')) {
+                    const milestoneDate = new Date(milestone.date);
+                    milestoneDate.setHours(0, 0, 0, 0);
+                    const todayDate = new Date(today);
+                    todayDate.setHours(0, 0, 0, 0);
+                    
+                    const daysUntil = Math.ceil((milestoneDate - todayDate) / (1000 * 60 * 60 * 24));
+                    
+                    // 距离考试14天内自动进入冲刺模式
+                    if (daysUntil > 0 && daysUntil <= 14) {
+                        console.log(`🔥 自动冲刺：距离「${milestone.name}」还有 ${daysUntil} 天，自动进入冲刺模式`);
+                        
+                        // 发送微信通知
+                        if (typeof sendWeChatNotification !== 'undefined') {
+                            sendWeChatNotification(
+                                '🔥 自动进入冲刺模式',
+                                `## 考试临近提醒\n\n距离「**${milestone.name}**」还有 **${daysUntil}** 天！\n\n系统已自动切换为冲刺模式：\n- 取消兴趣时间\n- 增加学习强度\n- 全力备考\n\n加油！💪`
+                            );
+                        }
+                        
+                        return true;
+                    }
+                }
+            }
+            
             return false;
         }
 
@@ -1099,9 +1129,10 @@
                             <div class="task-desc">${displayTask}</div>
                         </div>
                         <div>
-                            <button class="edit-btn" onclick="editTask(${index})">✏️ 编辑</button>
+                            <button class="edit-btn" onclick="editTask(${index})">✏️</button>
+                            <button class="save-btn" onclick="insertUrgentTaskAt(${index})" style="font-size: 0.8em; padding: 5px 10px; margin: 0 5px;">➕</button>
                             <button class="check-btn ${completed ? 'checked' : ''}" onclick="toggleTask('${key}')" ${isDisabled ? 'disabled' : ''}>
-                                ${completed ? '✓ 已完成' : '打卡'}
+                                ${completed ? '✓' : '打卡'}
                             </button>
                         </div>
                     </div>
@@ -1154,12 +1185,38 @@
                     <p><strong>核心重点：</strong>${displayFocus}</p>
                     <p><strong>额外任务：</strong>${displayExtra}</p>
                     <button class="edit-btn" onclick="editWeeklyTask(${dayOfWeek})" style="margin-top: 10px;">✏️ 编辑今日计划</button>
-                    <button class="save-btn" onclick="insertUrgentTask()" style="margin-top: 10px; margin-left: 5px;">➕ 插入临时事件</button>
                 </div>
             `;
         }
 
-        // 插入临时事件
+        // 在指定时间段插入临时事件
+        function insertUrgentTaskAt(slotIndex) {
+            const taskName = prompt('请输入临时事件名称（如：面试、宣讲会等）：');
+            if (!taskName) return;
+            
+            const originalTask = config.dailyTimeline[slotIndex].task;
+            const timeRange = config.dailyTimeline[slotIndex].time;
+            
+            const confirm = window.confirm(`将在 ${timeRange} 插入「${taskName}」\n\n原任务「${originalTask}」将被替换。\n\n是否继续？`);
+            
+            if (confirm) {
+                config.dailyTimeline[slotIndex].task = `🚨 ${taskName}（临时插入）`;
+                config.dailyTimeline[slotIndex].tag = "临时";
+                renderTimeline();
+                alert(`✅ 已插入临时事件「${taskName}」`);
+                
+                // 发送微信通知
+                if (typeof sendWeChatNotification !== 'undefined') {
+                    const today = new Date().toLocaleDateString('zh-CN');
+                    sendWeChatNotification(
+                        '📅 临时事件提醒',
+                        `## 已插入临时事件\n\n**日期：** ${today}\n**时间：** ${timeRange}\n**事件：** ${taskName}\n\n请注意时间安排！`
+                    );
+                }
+            }
+        }
+
+        // 插入临时事件（旧版本，保留兼容）
         function insertUrgentTask() {
             const taskName = prompt('请输入临时事件名称（如：面试、宣讲会等）：');
             if (!taskName) return;
