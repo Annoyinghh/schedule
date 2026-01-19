@@ -378,6 +378,12 @@
             border-color: #ff6b6b;
         }
 
+        .calendar-day.milestone-day {
+            border-color: #ff0000;
+            border-width: 3px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+        }
+
         .day-number {
             font-weight: bold;
             margin-bottom: 3px;
@@ -706,17 +712,34 @@
                 const isToday = date.toDateString() === today.toDateString();
                 const weekNum = getWeekOfMonth(date);
                 const isHobby = baseConfig.weekRules.hobbyWeeks.includes(weekNum);
-                const event = monthEvents[dateStr];
+                
+                // 检查是否有月历事件
+                const calendarEvent = monthEvents[dateStr];
+                
+                // 检查是否有关键日期（里程碑）
+                const milestone = baseConfig.milestones.find(m => m.date === dateStr);
+                
+                // 合并显示事件
+                let displayEvent = '';
+                if (milestone) {
+                    displayEvent = `🎯 ${milestone.name}`;
+                    if (calendarEvent) {
+                        displayEvent += ` | ${calendarEvent}`;
+                    }
+                } else if (calendarEvent) {
+                    displayEvent = calendarEvent;
+                }
                 
                 let classes = 'calendar-day';
                 if (isToday) classes += ' today';
                 if (isHobby) classes += ' hobby-week';
                 else classes += ' focus-week';
-                if (event) classes += ' has-event';
+                if (displayEvent) classes += ' has-event';
+                if (milestone) classes += ' milestone-day';
                 
                 html += `<div class="${classes}" onclick="editDayEvent('${dateStr}')">
                     <div class="day-number">${day}</div>
-                    ${event ? `<div class="day-event">${event}</div>` : ''}
+                    ${displayEvent ? `<div class="day-event">${displayEvent}</div>` : ''}
                 </div>`;
             }
             
