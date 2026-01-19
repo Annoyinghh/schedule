@@ -16,7 +16,8 @@ sudo apt-get update
 echo ""
 echo "📦 步骤 2/5: 安装 Node.js..."
 if ! command -v node &> /dev/null; then
-    curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+    echo "正在安装 Node.js 10.x (适用于 Ubuntu 14.04)..."
+    curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
     sudo apt-get install -y nodejs
     echo "✅ Node.js 安装完成"
 else
