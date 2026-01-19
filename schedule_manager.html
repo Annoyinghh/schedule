@@ -507,7 +507,7 @@
                 <div id="timelineContainer"></div>
             </div>
 
-            <!-- 本周重点 -->
+            <!-- 本周信息 -->
             <div class="section">
                 <h2>📌 本周信息</h2>
                 <div id="weeklyContainer"></div>
@@ -1129,7 +1129,7 @@
                             <div class="task-desc">${displayTask}</div>
                         </div>
                         <div>
-                            <button class="edit-btn" onclick="editTask(${index})">✏️</button>
+                            ${item.isCustom ? `<button class="edit-btn" onclick="deleteCustomTask(${index})" style="background: #dc3545;">🗑️</button>` : `<button class="edit-btn" onclick="editTask(${index})">✏️</button>`}
                             <button class="save-btn" onclick="insertUrgentTaskAt(${index})" style="font-size: 0.8em; padding: 5px 10px; margin: 0 5px;">➕</button>
                             <button class="check-btn ${completed ? 'checked' : ''}" onclick="toggleTask('${key}')" ${isDisabled ? 'disabled' : ''}>
                                 ${completed ? '✓' : '打卡'}
@@ -1161,14 +1161,9 @@
         // 渲染本周重点
         function renderWeekly() {
             const container = document.getElementById('weeklyContainer');
-            const dayOfWeek = new Date().getDay();
-            const weekTask = config.weeklyTasks[dayOfWeek];
             const today = new Date();
             const isHobby = isHobbyWeek(today);
             const weekNum = getWeekOfMonth(today);
-            
-            const displayFocus = weekTask.focus || '<span style="color: #999;">点击编辑设置重点</span>';
-            const displayExtra = weekTask.extra || '<span style="color: #999;">点击编辑设置任务</span>';
             
             container.innerHTML = `
                 <div class="weekly-task">
@@ -1180,12 +1175,6 @@
                         ${isHobby ? '本周周三晚和周六下午可安排兴趣爱好' : '本周全力学习，无兴趣时间'}
                     </p>
                 </div>
-                <div class="weekly-task" style="margin-top: 10px;">
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">今日重点</h3>
-                    <p><strong>核心重点：</strong>${displayFocus}</p>
-                    <p><strong>额外任务：</strong>${displayExtra}</p>
-                    <button class="edit-btn" onclick="editWeeklyTask(${dayOfWeek})" style="margin-top: 10px;">✏️ 编辑今日计划</button>
-                </div>
             `;
         }
 
@@ -1194,25 +1183,108 @@
             const taskName = prompt('请输入临时事件名称（如：面试、宣讲会等）：');
             if (!taskName) return;
             
-            const originalTask = config.dailyTimeline[slotIndex].task;
-            const timeRange = config.dailyTimeline[slotIndex].time;
+            // 询问是否自定义时间
+            const customTime = confirm('是否自定义时间？\n\n点击"确定"自定义时间\n点击"取消"使用当前时间段');
             
-            const confirm = window.confirm(`将在 ${timeRange} 插入「${taskName}」\n\n原任务「${originalTask}」将被替换。\n\n是否继续？`);
+            let startTime, endTime, timeRange;
             
-            if (confirm) {
+            if (customTime) {
+                // 自定义时间
+                startTime = prompt('请输入开始时间（格式：HH:MM，如 14:30）：');
+                if (!startTime) return;
+                
+                endTime = prompt('请输入结束时间（格式：HH:MM，如 16:30）：');
+                if (!endTime) return;
+                
+                // 验证时间格式
+                const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+                    alert('❌ 时间格式错误！请使用 HH:MM 格式（如 14:30）');
+                    return;
+                }
+                
+                timeRange = `${startTime} - ${endTime}`;
+                
+                // 插入新的时间段
+                const newTask = {
+                    time: timeRange,
+                    tag: "临时",
+                    task: `🚨 ${taskName}（临时插入）`,
+                    type: "urgent",
+                    priority: "high",
+                    placeholder: "",
+                    isCustom: true
+                };
+                
+                config.dailyTimeline.push(newTask);
+                
+                // 按时间排序
+                sortTimelineByTime();
+                
+            } else {
+                // 使用当前时间段
+                const originalTask = config.dailyTimeline[slotIndex].task;
+                timeRange = config.dailyTimeline[slotIndex].time;
+                
+                const confirmReplace = window.confirm(`将在 ${timeRange} 插入「${taskName}」\n\n原任务「${originalTask}」将被替换。\n\n是否继续？`);
+                
+                if (!confirmReplace) return;
+                
                 config.dailyTimeline[slotIndex].task = `🚨 ${taskName}（临时插入）`;
                 config.dailyTimeline[slotIndex].tag = "临时";
-                renderTimeline();
-                alert(`✅ 已插入临时事件「${taskName}」`);
+            }
+            
+            renderTimeline();
+            alert(`✅ 已插入临时事件「${taskName}」\n时间：${timeRange}`);
+            
+            // 发送微信通知
+            if (typeof sendWeChatNotification !== 'undefined') {
+                const today = new Date().toLocaleDateString('zh-CN');
+                sendWeChatNotification(
+                    '📅 临时事件提醒',
+                    `## 已插入临时事件\n\n**日期：** ${today}\n**时间：** ${timeRange}\n**事件：** ${taskName}\n\n请注意时间安排！`
+                );
+            }
+        }
+
+        // 按时间排序时间轴
+        function sortTimelineByTime() {
+            config.dailyTimeline.sort((a, b) => {
+                // 提取开始时间
+                const getStartTime = (timeStr) => {
+                    const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+                    if (match) {
+                        return parseInt(match[1]) * 60 + parseInt(match[2]);
+                    }
+                    return 0;
+                };
                 
-                // 发送微信通知
-                if (typeof sendWeChatNotification !== 'undefined') {
-                    const today = new Date().toLocaleDateString('zh-CN');
-                    sendWeChatNotification(
-                        '📅 临时事件提醒',
-                        `## 已插入临时事件\n\n**日期：** ${today}\n**时间：** ${timeRange}\n**事件：** ${taskName}\n\n请注意时间安排！`
-                    );
-                }
+                return getStartTime(a.time) - getStartTime(b.time);
+            });
+        }
+
+        // 按时间排序时间轴
+        function sortTimelineByTime() {
+            config.dailyTimeline.sort((a, b) => {
+                // 提取开始时间
+                const getStartTime = (timeStr) => {
+                    const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+                    if (match) {
+                        return parseInt(match[1]) * 60 + parseInt(match[2]);
+                    }
+                    return 0;
+                };
+                
+                return getStartTime(a.time) - getStartTime(b.time);
+            });
+        }
+
+        // 删除自定义任务
+        function deleteCustomTask(index) {
+            if (confirm('确定要删除这个临时事件吗？')) {
+                config.dailyTimeline.splice(index, 1);
+                renderTimeline();
+                updateStats();
             }
         }
 
