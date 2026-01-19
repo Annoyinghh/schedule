@@ -1,27 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * 日程管理系统 - API服务器
- * 接收网页发送的事件，保存到本地，供提醒脚本使用
+ * 日程管理系统 - API服务器（兼容老版本Node.js）
  */
 
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+var http = require('http');
+var fs = require('fs');
+var path = require('path');
 
 // 配置
-const CONFIG = {
+var CONFIG = {
     PORT: 3000,
-    DATA_FILE: path.join(__dirname, 'events_data.json'),
-    SERVER_CHAN_KEY: 'SCT310265TyJ4D67VAfJfQTSj87381qEAY'
+    DATA_FILE: path.join(__dirname, 'events_data.json')
 };
 
 // 读取事件数据
 function loadEvents() {
     try {
         if (fs.existsSync(CONFIG.DATA_FILE)) {
-            const data = fs.readFileSync(CONFIG.DATA_FILE, 'utf8');
+            var data = fs.readFileSync(CONFIG.DATA_FILE, 'utf8');
             return JSON.parse(data);
         }
     } catch (e) {
@@ -59,35 +56,35 @@ function sendResponse(res, statusCode, data) {
 }
 
 // 创建HTTP服务器
-const server = http.createServer((req, res) => {
+var server = http.createServer(function(req, res) {
     setCORS(res);
     
-    // 处理OPTIONS请求（CORS预检）
+    // 处理OPTIONS请求
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
         res.end();
         return;
     }
     
-    const url = req.url;
-    const method = req.method;
+    var url = req.url;
+    var method = req.method;
     
-    console.log(`${method} ${url}`);
+    console.log(method + ' ' + url);
     
     // 获取所有事件
     if (method === 'GET' && url === '/api/events') {
-        const events = loadEvents();
+        var events = loadEvents();
         sendResponse(res, 200, { success: true, data: events });
         return;
     }
     
-    // 同步所有事件（网页发送完整数据）
+    // 同步所有事件
     if (method === 'POST' && url === '/api/events/sync') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
+        var body = '';
+        req.on('data', function(chunk) { body += chunk.toString(); });
+        req.on('end', function() {
             try {
-                const data = JSON.parse(body);
+                var data = JSON.parse(body);
                 if (saveEvents(data)) {
                     console.log('📥 收到事件同步:', {
                         milestones: data.milestones.length,
@@ -107,14 +104,16 @@ const server = http.createServer((req, res) => {
     
     // 添加单个里程碑
     if (method === 'POST' && url === '/api/milestones') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
+        var body = '';
+        req.on('data', function(chunk) { body += chunk.toString(); });
+        req.on('end', function() {
             try {
-                const milestone = JSON.parse(body);
-                const events = loadEvents();
+                var milestone = JSON.parse(body);
+                var events = loadEvents();
                 events.milestones.push(milestone);
-                events.milestones.sort((a, b) => new Date(a.date) - new Date(b.date));
+                events.milestones.sort(function(a, b) { 
+                    return new Date(a.date) - new Date(b.date); 
+                });
                 if (saveEvents(events)) {
                     console.log('📥 添加里程碑:', milestone.name);
                     sendResponse(res, 200, { success: true, message: '添加成功' });
@@ -131,12 +130,14 @@ const server = http.createServer((req, res) => {
     
     // 添加/更新月历事件
     if (method === 'POST' && url === '/api/calendar') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
+        var body = '';
+        req.on('data', function(chunk) { body += chunk.toString(); });
+        req.on('end', function() {
             try {
-                const { date, event } = JSON.parse(body);
-                const events = loadEvents();
+                var parsed = JSON.parse(body);
+                var date = parsed.date;
+                var event = parsed.event;
+                var events = loadEvents();
                 if (event && event.trim()) {
                     events.calendarEvents[date] = event.trim();
                 } else {
@@ -167,12 +168,12 @@ const server = http.createServer((req, res) => {
 });
 
 // 启动服务器
-server.listen(CONFIG.PORT, '0.0.0.0', () => {
+server.listen(CONFIG.PORT, '0.0.0.0', function() {
     console.log('========================================');
     console.log('📅 日程管理系统 - API服务器');
     console.log('========================================');
-    console.log(`✅ 服务器已启动: http://0.0.0.0:${CONFIG.PORT}`);
-    console.log(`📂 数据文件: ${CONFIG.DATA_FILE}`);
+    console.log('✅ 服务器已启动: http://0.0.0.0:' + CONFIG.PORT);
+    console.log('📂 数据文件: ' + CONFIG.DATA_FILE);
     console.log('');
     console.log('📋 可用接口:');
     console.log('  GET  /api/health          - 健康检查');
@@ -186,9 +187,9 @@ server.listen(CONFIG.PORT, '0.0.0.0', () => {
 });
 
 // 优雅退出
-process.on('SIGINT', () => {
+process.on('SIGINT', function() {
     console.log('\n\n👋 服务器正在关闭...');
-    server.close(() => {
+    server.close(function() {
         console.log('✅ 服务器已关闭');
         process.exit(0);
     });
