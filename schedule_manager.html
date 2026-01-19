@@ -747,6 +747,21 @@
                 if (newEvent !== null) {
                     if (newEvent.trim()) {
                         monthEvents[dateStr] = newEvent.trim();
+                        
+                        // 如果是明天的事件，立即发送提醒
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+                        
+                        if (dateStr === tomorrowStr) {
+                            if (typeof sendWeChatNotification !== 'undefined') {
+                                sendWeChatNotification(
+                                    '📅 明天事件提醒',
+                                    `## 明天有安排\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n\n请提前做好准备！`
+                                );
+                            }
+                            alert('✅ 已设置明天的事件，并发送了微信提醒！');
+                        }
                     } else {
                         delete monthEvents[dateStr];
                     }
@@ -799,9 +814,11 @@
             baseConfig.milestones.push({ date, name, note });
             baseConfig.milestones.sort((a, b) => new Date(a.date) - new Date(b.date));
             
-            localStorage.setItem('customMilestones', JSON.stringify(baseConfig.milestones));
+            saveCustomConfig();
             renderMilestones();
             checkUpcomingReminders();
+            
+            alert('✅ 事件已添加！系统会在提前 14/7/3/1 天自动提醒。');
         }
 
         // 测试微信通知
@@ -876,20 +893,70 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
+            console.log('🔍 检查提醒事件...');
+            
             baseConfig.milestones.forEach(milestone => {
                 const milestoneDate = new Date(milestone.date);
                 milestoneDate.setHours(0, 0, 0, 0);
                 
                 const daysUntil = Math.ceil((milestoneDate - today) / (1000 * 60 * 60 * 24));
                 
+                console.log(`📅 ${milestone.name}: 还有 ${daysUntil} 天`);
+                
+                // 检查是否需要提醒（14/7/3/1天）
                 if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
                     const reminderKey = `reminder_${milestone.date}_${daysUntil}`;
-                    if (!localStorage.getItem(reminderKey)) {
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    // 如果今天还没有提醒过，则发送提醒
+                    if (lastReminder !== todayStr) {
+                        console.log(`🔔 发送提醒: ${milestone.name} (${daysUntil}天)`);
                         showReminder(milestone, daysUntil);
-                        localStorage.setItem(reminderKey, 'shown');
+                        localStorage.setItem(reminderKey, todayStr);
+                    } else {
+                        console.log(`⏭️ 今天已提醒过: ${milestone.name}`);
                     }
                 }
             });
+            
+            // 检查月历中的明天事件
+            checkTomorrowEvents();
+        }
+
+        // 检查明天的事件
+        function checkTomorrowEvents() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+            
+            const tomorrowEvent = monthEvents[tomorrowStr];
+            
+            if (tomorrowEvent) {
+                const reminderKey = `tomorrow_${tomorrowStr}`;
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                // 如果今天还没有提醒过明天的事件
+                if (localStorage.getItem(reminderKey) !== todayStr) {
+                    console.log(`🔔 明天有事件: ${tomorrowEvent}`);
+                    
+                    // 发送微信通知
+                    if (typeof sendWeChatNotification !== 'undefined') {
+                        sendWeChatNotification(
+                            '📅 明天事件提醒',
+                            `## 明天有安排\n\n**日期：** ${tomorrowStr}\n**事件：** ${tomorrowEvent}\n\n请提前做好准备！`
+                        );
+                    }
+                    
+                    // 浏览器通知
+                    sendBrowserNotification(
+                        '📅 明天事件提醒',
+                        `明天（${tomorrowStr}）有事：${tomorrowEvent}`
+                    );
+                    
+                    localStorage.setItem(reminderKey, todayStr);
+                }
+            }
         }
 
         // 显示提醒
@@ -914,34 +981,52 @@
 
         // 加载保存的配置
         function loadSavedConfig() {
+            // 加载自定义时间轴
             const savedTimeline = localStorage.getItem('customTimeline');
-            const savedWeekly = localStorage.getItem('customWeekly');
-            
             if (savedTimeline) {
-                const customTimeline = JSON.parse(savedTimeline);
-                baseConfig.dailyTimeline.forEach((item, index) => {
-                    if (customTimeline[index] && customTimeline[index].task) {
-                        item.task = customTimeline[index].task;
-                    }
-                });
+                try {
+                    const customTimeline = JSON.parse(savedTimeline);
+                    baseConfig.dailyTimeline = customTimeline;
+                } catch (e) {
+                    console.error('加载时间轴失败:', e);
+                }
             }
             
+            // 加载自定义周计划
+            const savedWeekly = localStorage.getItem('customWeekly');
             if (savedWeekly) {
-                const customWeekly = JSON.parse(savedWeekly);
-                Object.keys(customWeekly).forEach(day => {
-                    if (customWeekly[day]) {
-                        baseConfig.weeklyTasks[day] = customWeekly[day];
-                    }
-                });
+                try {
+                    const customWeekly = JSON.parse(savedWeekly);
+                    baseConfig.weeklyTasks = customWeekly;
+                } catch (e) {
+                    console.error('加载周计划失败:', e);
+                }
+            }
+            
+            // 加载自定义里程碑
+            const savedMilestones = localStorage.getItem('customMilestones');
+            if (savedMilestones) {
+                try {
+                    baseConfig.milestones = JSON.parse(savedMilestones);
+                } catch (e) {
+                    console.error('加载里程碑失败:', e);
+                }
             }
             
             config = JSON.parse(JSON.stringify(baseConfig));
+            console.log('✅ 配置已加载:', { timeline: config.dailyTimeline.length, milestones: config.milestones.length });
         }
 
         // 保存自定义配置
         function saveCustomConfig() {
-            localStorage.setItem('customTimeline', JSON.stringify(config.dailyTimeline));
-            localStorage.setItem('customWeekly', JSON.stringify(config.weeklyTasks));
+            try {
+                localStorage.setItem('customTimeline', JSON.stringify(config.dailyTimeline));
+                localStorage.setItem('customWeekly', JSON.stringify(config.weeklyTasks));
+                localStorage.setItem('customMilestones', JSON.stringify(baseConfig.milestones));
+                console.log('✅ 配置已保存');
+            } catch (e) {
+                console.error('❌ 保存配置失败:', e);
+            }
         }
 
         // 显示模式消息
@@ -1389,7 +1474,7 @@
         function deleteMilestone(index) {
             if (confirm('确定要删除这个事件吗？')) {
                 baseConfig.milestones.splice(index, 1);
-                localStorage.setItem('customMilestones', JSON.stringify(baseConfig.milestones));
+                saveCustomConfig();
                 renderMilestones();
             }
         }
