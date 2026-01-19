@@ -553,6 +553,12 @@
     </div>
 
     <script>
+        // API配置（云服务器地址）
+        const API_CONFIG = {
+            enabled: true, // 是否启用API同步
+            baseURL: 'http://171.80.9.175:3000/api' // 云服务器API地址
+        };
+
         // 基础配置数据
         const baseConfig = {
             examPoints: ["考点A", "考点B", "考点C", "考点D", "考点E"],
@@ -656,6 +662,36 @@
         // 保存月度事件
         function saveMonthEvents() {
             localStorage.setItem('monthEvents', JSON.stringify(monthEvents));
+            // 同步到云服务器
+            syncToCloudServer();
+        }
+
+        // 同步数据到云服务器
+        async function syncToCloudServer() {
+            if (!API_CONFIG.enabled) return;
+            
+            try {
+                const data = {
+                    milestones: baseConfig.milestones,
+                    calendarEvents: monthEvents
+                };
+                
+                const response = await fetch(`${API_CONFIG.baseURL}/events/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ 数据已同步到云服务器');
+                } else {
+                    console.warn('⚠️ 云服务器同步失败，但本地数据已保存');
+                }
+            } catch (error) {
+                console.warn('⚠️ 无法连接到云服务器，但本地数据已保存');
+            }
         }
 
         // 获取月份的周次
@@ -1187,6 +1223,8 @@
                 localStorage.setItem('customWeekly', JSON.stringify(config.weeklyTasks));
                 localStorage.setItem('customMilestones', JSON.stringify(baseConfig.milestones));
                 console.log('✅ 配置已保存');
+                // 同步到云服务器
+                syncToCloudServer();
             } catch (e) {
                 console.error('❌ 保存配置失败:', e);
             }

@@ -179,7 +179,7 @@ node daily_reminder.js
 # 5. 设置定时任务
 echo ""
 echo "📦 设置定时任务..."
-(crontab -l 2>/dev/null | grep -v "daily_reminder.js"; echo "0 8 * * * cd ~/schedule-reminder && node daily_reminder.js >> ~/schedule-reminder/reminder.log 2>&1") | crontab -
+(crontab -l 2>/dev/null | grep -v "daily_reminder.js"; echo "0 7 * * * cd ~/schedule-reminder && node daily_reminder.js >> ~/schedule-reminder/reminder.log 2>&1") | crontab -
 
 echo ""
 echo "========================================="
@@ -188,7 +188,7 @@ echo "========================================="
 echo ""
 echo "📋 配置信息:"
 echo "  - 工作目录: ~/schedule-reminder"
-echo "  - 运行时间: 每天早上 8:00"
+echo "  - 运行时间: 每天早上 7:00"
 echo ""
 echo "🧪 手动测试:"
 echo "  cd ~/schedule-reminder && node daily_reminder.js"
