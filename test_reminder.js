@@ -1,53 +1,51 @@
 #!/usr/bin/env node
 
 /**
- * 测试脚本 - 发送测试通知
+ * 测试脚本 - 发送测试通知（兼容老版本Node.js）
  */
 
 var https = require('https');
 
 var SERVER_CHAN_KEY = 'SCT310265TyJ4D67VAfJfQTSj87381qEAY';
 
-function sendWeChatNotification(title, content) {
-    return new Promise(function(resolve) {
-        var postData = 'title=' + encodeURIComponent(title) + '&desp=' + encodeURIComponent(content);
-        var options = {
-            hostname: 'sctapi.ftqq.com',
-            port: 443,
-            path: '/' + SERVER_CHAN_KEY + '.send',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
-        };
-        var req = https.request(options, function(res) {
-            var data = '';
-            res.on('data', function(chunk) { data += chunk; });
-            res.on('end', function() {
-                try {
-                    var result = JSON.parse(data);
-                    if (result.code === 0) {
-                        console.log('✅ 测试通知发送成功！');
-                        console.log('   PushID: ' + result.data.pushid);
-                        resolve(true);
-                    } else {
-                        console.log('❌ 发送失败: ' + result.message);
-                        resolve(false);
-                    }
-                } catch (e) {
-                    console.log('❌ 解析失败');
-                    resolve(false);
+function sendWeChatNotification(title, content, callback) {
+    var postData = 'title=' + encodeURIComponent(title) + '&desp=' + encodeURIComponent(content);
+    var options = {
+        hostname: 'sctapi.ftqq.com',
+        port: 443,
+        path: '/' + SERVER_CHAN_KEY + '.send',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    };
+    var req = https.request(options, function(res) {
+        var data = '';
+        res.on('data', function(chunk) { data += chunk; });
+        res.on('end', function() {
+            try {
+                var result = JSON.parse(data);
+                if (result.code === 0) {
+                    console.log('✅ 测试通知发送成功！');
+                    console.log('   PushID: ' + result.data.pushid);
+                    callback(true);
+                } else {
+                    console.log('❌ 发送失败: ' + result.message);
+                    callback(false);
                 }
-            });
+            } catch (e) {
+                console.log('❌ 解析失败');
+                callback(false);
+            }
         });
-        req.on('error', function(e) {
-            console.log('❌ 请求失败: ' + e.message);
-            resolve(false);
-        });
-        req.write(postData);
-        req.end();
     });
+    req.on('error', function(e) {
+        console.log('❌ 请求失败: ' + e.message);
+        callback(false);
+    });
+    req.write(postData);
+    req.end();
 }
 
 console.log('========================================');
@@ -63,7 +61,7 @@ var timeStr = now.toLocaleString('zh-CN');
 var title = '🧪 测试通知 - 日程管理系统';
 var content = '## 测试消息\n\n这是一条测试通知！\n\n**发送时间：** ' + timeStr + '\n\n### ✅ 系统状态\n- API服务器：运行正常\n- 提醒脚本：运行正常\n- Server酱：连接成功\n\n### 📋 功能说明\n系统会在以下情况自动发送通知：\n1. 重要事件提前 14/7/3/1 天提醒\n2. 每天早上 7:00 自动检查\n\n---\n*来自云服务器自动提醒系统*';
 
-sendWeChatNotification(title, content).then(function(success) {
+sendWeChatNotification(title, content, function(success) {
     console.log('');
     if (success) {
         console.log('========================================');
