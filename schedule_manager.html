@@ -1444,5 +1444,71 @@
         // 启动
         init();
     </script>
+    
+    <!-- Server酱微信通知功能 -->
+    <script>
+        // Server酱配置
+        const SERVER_CHAN_KEY = 'SCT310265TyJ4D67VAfJfQTSj87381qEAY';
+
+        // 发送微信通知
+        async function sendWeChatNotification(title, content) {
+            try {
+                console.log('📤 正在发送微信通知...', { title, content });
+                
+                // 使用 FormData 格式发送
+                const formData = new URLSearchParams();
+                formData.append('title', title);
+                formData.append('desp', content);
+                
+                const response = await fetch(`https://sctapi.ftqq.com/${SERVER_CHAN_KEY}.send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                console.log('📥 Server酱响应:', result);
+                
+                if (result.code === 0) {
+                    console.log('✅ 微信通知发送成功！PushID:', result.data.pushid);
+                    return true;
+                } else {
+                    console.error('❌ 微信通知发送失败:', result.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ 微信通知发送异常:', error);
+                return false;
+            }
+        }
+
+        // 浏览器通知
+        function sendBrowserNotification(title, body) {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: body,
+                        icon: '📅',
+                        badge: '🔔'
+                    });
+                    return true;
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, {
+                                body: body,
+                                icon: '📅'
+                            });
+                        }
+                    });
+                }
+            }
+            return false;
+        }
+
+        console.log('✅ Server酱通知服务已加载');
+    </script>
 </body>
 </html>
