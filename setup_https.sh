@@ -41,13 +41,16 @@ server {
         proxy_cache_bypass $http_upgrade;
         
         # CORS headers
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Content-Type' always;
+            return 204;
+        }
+        
         add_header 'Access-Control-Allow-Origin' '*' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Content-Type' always;
-        
-        if ($request_method = 'OPTIONS') {
-            return 204;
-        }
     }
 }
 EOF
