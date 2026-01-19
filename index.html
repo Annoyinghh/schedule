@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日程管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .current-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .timeline-item {
+            background: white;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .timeline-item.completed {
+            background: #d4edda;
+            border-left-color: #28a745;
+            opacity: 0.8;
+        }
+
+        .time-range {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 100px;
+            font-size: 0.9em;
+        }
+
+        .task-name {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .task-desc {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .check-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+
+        .check-btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .check-btn.checked {
+            background: #28a745;
+        }
+
+        .edit-btn {
+            background: #ffc107;
+            color: #333;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8em;
+            margin-right: 6px;
+        }
+
+        .edit-btn:hover {
+            background: #ffb300;
+            transform: scale(1.05);
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .weekly-task {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .milestone {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .milestone-date {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 3px;
+            font-size: 0.9em;
+        }
+
+        .notes-area {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+
+        .save-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95em;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+
+        .save-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .mode-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .mode-btn.normal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .mode-btn.interview {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .mode-btn.tired {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .mode-btn.stressed {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+
+        .mode-btn.sprint {
+            background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .mode-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 1em;
+            text-align: center;
+            display: none;
+            transition: opacity 0.5s;
+        }
+
+        .timeline-item.disabled {
+            opacity: 0.5;
+            background: #f0f0f0;
+        }
+
+        .timeline-item.disabled .check-btn {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* 月历样式 */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-controls button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .calendar-controls button:hover {
+            background: #5568d3;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            font-size: 0.85em;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8em;
+        }
+
+        .calendar-day:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .calendar-day.today {
+            border-color: #ff6b6b;
+            border-width: 3px;
+            background: #fff5f5;
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.hobby-week {
+            background: #d4edda;
+        }
+
+        .calendar-day.focus-week {
+            background: #fff3cd;
+        }
+
+        .calendar-day.has-event {
+            border-color: #ff6b6b;
+        }
+
+        .calendar-day.milestone-day {
+            border-color: #ff0000;
+            border-width: 3px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .day-event {
+            font-size: 0.7em;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .week-info {
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+            font-size: 0.85em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+                gap: 12px;
+            }
+            
+            .timeline-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .time-range {
+                margin-bottom: 5px;
+            }
+            
+            .mode-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 日程管理系统</h1>
+            <div class="current-info">
+                <span id="currentDate"></span>
+                <span id="currentDay"></span>
+                <span id="currentTime"></span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 月历视图 -->
+            <div class="section">
+                <h2>📅 月历视图</h2>
+                <div class="calendar-controls">
+                    <button onclick="changeMonth(-1)">◀ 上月</button>
+                    <span id="calendarTitle"></span>
+                    <button onclick="changeMonth(1)">下月 ▶</button>
+                </div>
+                <div id="calendarContainer"></div>
+                <div class="week-info">
+                    <span style="color: #28a745;">● 兴趣周 (第2/4周)</span>
+                    <span style="color: #ff6b6b;">● 冲刺周 (第1/3/5周)</span>
+                </div>
+            </div>
+
+            <!-- 模式切换 -->
+            <div class="section">
+                <h2>🎛️ 智能模式切换</h2>
+                <div id="modeMessage" class="mode-message"></div>
+                <div class="mode-buttons">
+                    <button class="mode-btn normal" onclick="switchMode('normal')">☀️ 正常模式</button>
+                    <button class="mode-btn interview" onclick="switchMode('interview', {time: prompt('请输入面试时间（如：14:00-16:00）', '14:00-16:00')})">🎯 有面试</button>
+                    <button class="mode-btn tired" onclick="switchMode('tired')">🔴 太累了</button>
+                    <button class="mode-btn stressed" onclick="switchMode('stressed')">😌 学不进去</button>
+                    <button class="mode-btn sprint" onclick="switchMode('sprint')">🔥 冲刺模式</button>
+                </div>
+            </div>
+
+            <!-- 今日进度统计 -->
+            <div class="section">
+                <h2>📊 今日进度</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedCount">0</div>
+                        <div class="stat-label">已完成任务</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">总任务数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completionRate">0%</div>
+                        <div class="stat-label">完成率</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                </div>
+            </div>
+
+            <!-- 今日时间轴 -->
+            <div class="section">
+                <h2>⏰ 今日时间轴</h2>
+                <div id="timelineContainer"></div>
+            </div>
+
+            <!-- 本周信息 -->
+            <div class="section">
+                <h2>📌 本周信息</h2>
+                <div id="weeklyContainer"></div>
+            </div>
+
+            <!-- 关键日期 -->
+            <div class="section">
+                <h2>🎯 关键日期节点</h2>
+                <button class="save-btn" onclick="addMilestone()" style="margin-bottom: 10px;">➕ 添加重要事件</button>
+                <button class="save-btn" onclick="forceCheckReminders()" style="margin-bottom: 10px; background: #FF9800;">🔔 立即检查提醒</button>
+                <button class="save-btn" onclick="clearReminderCache()" style="margin-bottom: 10px; background: #f44336;">🗑️ 清除提醒缓存</button>
+                <div id="milestonesContainer"></div>
+            </div>
+
+            <!-- 通知设置 -->
+            <div class="section">
+                <h2>🔔 通知设置</h2>
+                <div style="background: white; padding: 12px; border-radius: 8px;">
+                    <p><strong>📱 手机：</strong> 15914969166</p>
+                    <p><strong>📧 邮箱：</strong> 1875512848@qq.com</p>
+                    <p><strong>⏰ 提醒时间：</strong>提前 14天、7天、3天、1天</p>
+                    <p style="margin-top: 10px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 0.9em;">
+                        <strong>✅ Server酱已配置</strong><br>
+                        通知将发送到微信「方糖服务号」
+                    </p>
+                    <button class="save-btn" onclick="testWeChatNotification()" style="margin-top: 10px;">🧪 测试微信通知</button>
+                </div>
+            </div>
+
+            <!-- 今日笔记 -->
+            <div class="section">
+                <h2>📝 今日笔记与反思</h2>
+                <textarea class="notes-area" id="dailyNotes" placeholder="记录今天的学习内容、遇到的问题、心得体会..."></textarea>
+                <button class="save-btn" onclick="saveNotes()">💾 保存笔记</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 基础配置数据
+        const baseConfig = {
+            examPoints: ["考点A", "考点B", "考点C", "考点D", "考点E"],
+            dailyTimeline: [
+                { time: "06:30 - 07:30", tag: "唤醒", task: "", placeholder: "例如：起床、洗漱、早餐、晨练等", type: "routine", priority: "high" },
+                { time: "07:30 - 11:30", tag: "高能", task: "", placeholder: "例如：学习考点、背诵、看书等", type: "exam", priority: "high" },
+                { time: "11:30 - 13:30", tag: "充电", task: "", placeholder: "例如：午餐、午休、刷招聘信息等", type: "routine", priority: "high" },
+                { time: "13:30 - 17:30", tag: "实战", task: "", placeholder: "例如：刷题、面试、项目实践等", type: "practice", priority: "medium" },
+                { time: "17:30 - 19:00", tag: "健康", task: "", placeholder: "例如：晚餐、运动、散步等", type: "exercise", priority: "medium" },
+                { time: "19:00 - 22:30", tag: "复盘", task: "", placeholder: "例如：整理笔记、复习、总结等", type: "review", priority: "medium" },
+                { time: "22:30 - 23:00", tag: "洗漱", task: "", placeholder: "例如：洗澡、护肤、整理房间等", type: "routine", priority: "high" },
+                { time: "23:00 - 24:00", tag: "必做", task: "", placeholder: "例如：技术学习、阅读、复盘等", type: "tech", priority: "critical" }
+            ],
+            weeklyTasks: {
+                1: { focus: "", extra: "" },
+                2: { focus: "", extra: "" },
+                3: { focus: "", extra: "" },
+                4: { focus: "", extra: "" },
+                5: { focus: "", extra: "" },
+                6: { focus: "", extra: "" },
+                0: { focus: "", extra: "" }
+            },
+            milestones: [
+                { date: "2026-03-15", name: "春季大考 (预估)", note: "3月1日开始停止娱乐，全力冲刺" },
+                { date: "2026-03-20", name: "求职+基础期开始", note: "重点处理春招和重学基础" },
+                { date: "2026-06-01", name: "求职+基础期结束", note: "" },
+                { date: "2026-11-27", name: "年度大考·国考 (参考)", note: "11月进入全真模拟模式" },
+                { date: "2026-12-07", name: "年度大考·省考 (参考)", note: "考完即止，长假休息" }
+            ],
+            sprintPeriods: [
+                { start: "2026-03-01", end: "2026-03-15" },
+                { start: "2026-11-13", end: "2026-11-27" },
+                { start: "2026-12-01", end: "2026-12-07" }
+            ],
+            // 周次规则：第2/4周是兴趣周，第1/3/5周是冲刺周
+            weekRules: {
+                hobbyWeeks: [2, 4],  // 兴趣周
+                focusWeeks: [1, 3, 5] // 冲刺周
+            },
+            // 通知设置
+            notifications: {
+                phone: "15914969166",
+                email: "1875512848@qq.com",
+                reminderDays: [14, 7, 3, 1] // 提前14天、7天、3天、1天提醒
+            }
+        };
+
+        // 当前配置（可动态修改）
+        let config = JSON.parse(JSON.stringify(baseConfig));
+        let currentMode = "normal";
+        let editingTask = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let monthEvents = {}; // 存储每月事件
+
+        // 初始化
+        function init() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // 加载保存的配置
+            loadSavedConfig();
+            loadMonthEvents();
+            
+            // 检查是否在冲刺期
+            if (checkSprintMode() && localStorage.getItem('currentMode') !== 'tired') {
+                autoRepair('sprint');
+            } else {
+                const savedMode = localStorage.getItem('currentMode');
+                if (savedMode && savedMode !== 'normal') {
+                    autoRepair(savedMode);
+                } else {
+                    autoRepair('normal');
+                }
+            }
+            
+            loadData();
+            renderCalendar();
+            renderTimeline();
+            renderWeekly();
+            renderMilestones();
+            updateStats();
+            showModeMessage();
+            checkUpcomingReminders();
+            
+            // 设置定时检查（每小时检查一次）
+            setInterval(() => {
+                console.log('⏰ 定时检查提醒...');
+                checkUpcomingReminders();
+            }, 60 * 60 * 1000); // 每小时检查一次
+        }
+
+        // 加载月度事件
+        function loadMonthEvents() {
+            const saved = localStorage.getItem('monthEvents');
+            if (saved) {
+                monthEvents = JSON.parse(saved);
+            }
+        }
+
+        // 保存月度事件
+        function saveMonthEvents() {
+            localStorage.setItem('monthEvents', JSON.stringify(monthEvents));
+        }
+
+        // 获取月份的周次
+        function getWeekOfMonth(date) {
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+            const dayOfMonth = date.getDate();
+            const firstDayOfWeek = firstDay.getDay();
+            return Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+        }
+
+        // 判断是否是兴趣周
+        function isHobbyWeek(date) {
+            const weekNum = getWeekOfMonth(date);
+            return baseConfig.weekRules.hobbyWeeks.includes(weekNum);
+        }
+
+        // 切换月份
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        }
+
+        // 渲染月历
+        function renderCalendar() {
+            const container = document.getElementById('calendarContainer');
+            const title = document.getElementById('calendarTitle');
+            
+            title.textContent = `${currentYear}年 ${currentMonth + 1}月`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayOfWeek = firstDay.getDay();
+            
+            let html = '<div class="calendar-grid">';
+            
+            // 星期标题
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekDays.forEach(day => {
+                html += `<div class="calendar-header">${day}</div>`;
+            });
+            
+            // 上月的日期（填充）
+            const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const day = prevMonthDays - i;
+                html += `<div class="calendar-day other-month"><div class="day-number">${day}</div></div>`;
+            }
+            
+            // 本月的日期
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                const weekNum = getWeekOfMonth(date);
+                const isHobby = baseConfig.weekRules.hobbyWeeks.includes(weekNum);
+                
+                // 检查是否有月历事件
+                const calendarEvent = monthEvents[dateStr];
+                
+                // 检查是否有关键日期（里程碑）
+                const milestone = baseConfig.milestones.find(m => m.date === dateStr);
+                
+                // 合并显示事件
+                let displayEvent = '';
+                if (milestone) {
+                    displayEvent = `🎯 ${milestone.name}`;
+                    if (calendarEvent) {
+                        displayEvent += ` | ${calendarEvent}`;
+                    }
+                } else if (calendarEvent) {
+                    displayEvent = calendarEvent;
+                }
+                
+                let classes = 'calendar-day';
+                if (isToday) classes += ' today';
+                if (isHobby) classes += ' hobby-week';
+                else classes += ' focus-week';
+                if (displayEvent) classes += ' has-event';
+                if (milestone) classes += ' milestone-day';
+                
+                html += `<div class="${classes}" onclick="editDayEvent('${dateStr}')">
+                    <div class="day-number">${day}</div>
+                    ${displayEvent ? `<div class="day-event">${displayEvent}</div>` : ''}
+                </div>`;
+            }
+            
+            // 下月的日期（填充）
+            const remainingDays = 42 - (startDayOfWeek + daysInMonth);
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<div class="calendar-day other-month"><div class="day-number">${day}</div></div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // 编辑某天的事件
+        function editDayEvent(dateStr) {
+            const date = new Date(dateStr);
+            const isHobby = isHobbyWeek(date);
+            const weekNum = getWeekOfMonth(date);
+            
+            const currentEvent = monthEvents[dateStr] || '';
+            const weekType = isHobby ? '兴趣周' : '冲刺周';
+            
+            const action = confirm(`📅 ${dateStr} (第${weekNum}周 - ${weekType})\n\n当前事件：${currentEvent || '无'}\n\n点击"确定"编辑事件，点击"取消"查看/调整当天时间轴`);
+            
+            if (action) {
+                // 编辑事件
+                const newEvent = prompt(`编辑 ${dateStr} 的事件：`, currentEvent);
+                if (newEvent !== null) {
+                    if (newEvent.trim()) {
+                        monthEvents[dateStr] = newEvent.trim();
+                        
+                        // 计算距离今天的天数
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const eventDate = new Date(dateStr);
+                        eventDate.setHours(0, 0, 0, 0);
+                        const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                        
+                        // 如果是未来的事件，立即发送一次提醒
+                        if (daysUntil > 0 && daysUntil <= 14) {
+                            console.log('📤 准备发送新事件通知...', { dateStr, event: newEvent.trim(), daysUntil });
+                            
+                            // 延迟一下确保 sendWeChatNotification 已加载
+                            setTimeout(async () => {
+                                if (typeof sendWeChatNotification !== 'undefined') {
+                                    const success = await sendWeChatNotification(
+                                        '📅 新事件提醒',
+                                        `## 已添加新事件\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n**距离：** ${daysUntil} 天\n\n系统会在提前 14/7/3/1 天自动提醒。`
+                                    );
+                                    
+                                    if (success) {
+                                        alert(`✅ 已设置事件，并发送了微信提醒！\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
+                                    } else {
+                                        alert(`⚠️ 事件已设置，但微信通知发送失败\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
+                                    }
+                                } else {
+                                    console.error('❌ sendWeChatNotification 未定义');
+                                    alert(`⚠️ 事件已设置\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。\n\n（通知功能未加载）`);
+                                }
+                            }, 100);
+                        } else {
+                            alert(`✅ 已设置事件！\n\n${daysUntil > 14 ? '距离较远，' : ''}系统会在提前 14/7/3/1 天自动提醒。`);
+                        }
+                    } else {
+                        delete monthEvents[dateStr];
+                    }
+                    saveMonthEvents();
+                    renderCalendar();
+                    
+                    // 重新检查提醒
+                    checkUpcomingReminders();
+                }
+            } else {
+                // 调整时间轴
+                adjustTimelineForDate(dateStr, isHobby);
+            }
+        }
+
+        // 根据日期调整时间轴
+        function adjustTimelineForDate(dateStr, isHobby) {
+            const date = new Date(dateStr);
+            const dayOfWeek = date.getDay();
+            const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            
+            alert(`正在为 ${dateStr} (${dayNames[dayOfWeek]}) 调整时间轴...\n\n这是${isHobby ? '兴趣周' : '冲刺周'}，时间轴已自动调整。\n\n你可以在下方"今日时间轴"中查看和编辑具体安排。`);
+            
+            // 自动调整时间轴
+            if (isHobby) {
+                // 兴趣周：周三晚和周六下午加入兴趣时间
+                config.dailyTimeline = JSON.parse(JSON.stringify(baseConfig.dailyTimeline));
+                if (dayOfWeek === 3) { // 周三
+                    config.dailyTimeline[5].task = "🎨 兴趣爱好时间（书法/羽毛球/其他）";
+                    config.dailyTimeline[5].tag = "兴趣";
+                } else if (dayOfWeek === 6) { // 周六
+                    config.dailyTimeline[3].task = "🎨 兴趣爱好时间（大块时间自由安排）";
+                    config.dailyTimeline[3].tag = "兴趣";
+                }
+            } else {
+                // 冲刺周：全部学习
+                config.dailyTimeline = JSON.parse(JSON.stringify(baseConfig.dailyTimeline));
+            }
+            
+            renderTimeline();
+        }
+
+        // 添加里程碑
+        function addMilestone() {
+            const date = prompt('请输入日期（格式：2026-03-15）：');
+            if (!date) return;
+            
+            const name = prompt('请输入事件名称：');
+            if (!name) return;
+            
+            const note = prompt('请输入备注（可选）：', '');
+            
+            baseConfig.milestones.push({ date, name, note });
+            baseConfig.milestones.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            saveCustomConfig();
+            renderMilestones();
+            checkUpcomingReminders();
+            
+            alert('✅ 事件已添加！系统会在提前 14/7/3/1 天自动提醒。');
+        }
+
+        // 强制检查所有提醒（用于测试）
+        async function forceCheckReminders() {
+            if (!confirm('🔔 确定要立即检查所有提醒吗？\n\n系统会检查所有事件，并发送符合条件的微信提醒（14/7/3/1天）。')) {
+                return;
+            }
+            
+            console.log('🔔 强制检查所有提醒...');
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let sentCount = 0;
+            let skippedCount = 0;
+            
+            // 1. 检查里程碑
+            for (const milestone of baseConfig.milestones) {
+                const milestoneDate = new Date(milestone.date);
+                milestoneDate.setHours(0, 0, 0, 0);
+                
+                const daysUntil = Math.ceil((milestoneDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
+                    const reminderKey = `reminder_${milestone.date}_${daysUntil}`;
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    if (lastReminder !== todayStr) {
+                        console.log(`📤 发送提醒: ${milestone.name} (${daysUntil}天)`);
+                        await showReminder(milestone, daysUntil, reminderKey, todayStr);
+                        sentCount++;
+                        // 等待1秒，避免发送太快
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        console.log(`⏭️ 跳过（今天已提醒）: ${milestone.name}`);
+                        skippedCount++;
+                    }
+                }
+            }
+            
+            // 2. 检查月历事件
+            for (const dateStr of Object.keys(monthEvents)) {
+                const eventDate = new Date(dateStr);
+                eventDate.setHours(0, 0, 0, 0);
+                
+                const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
+                    const reminderKey = `calendar_${dateStr}_${daysUntil}`;
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    if (lastReminder !== todayStr) {
+                        console.log(`📤 发送月历提醒: ${monthEvents[dateStr]} (${daysUntil}天)`);
+                        
+                        const milestone = {
+                            date: dateStr,
+                            name: monthEvents[dateStr],
+                            note: '来自月历'
+                        };
+                        await showReminder(milestone, daysUntil, reminderKey, todayStr);
+                        sentCount++;
+                        // 等待1秒，避免发送太快
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        console.log(`⏭️ 跳过（今天已提醒）: ${monthEvents[dateStr]}`);
+                        skippedCount++;
+                    }
+                }
+            }
+            
+            alert(`✅ 检查完成！\n\n📤 已发送：${sentCount} 条提醒\n⏭️ 已跳过：${skippedCount} 条（今天已提醒过）\n\n请查看微信「方糖服务号」`);
+        }
+
+        // 清除提醒缓存
+        function clearReminderCache() {
+            if (!confirm('⚠️ 确定要清除所有提醒缓存吗？\n\n清除后，系统会重新发送今天应该提醒的通知。')) {
+                return;
+            }
+            
+            let count = 0;
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('reminder_') || key.startsWith('calendar_')) {
+                    localStorage.removeItem(key);
+                    count++;
+                }
+            });
+            
+            alert(`✅ 已清除 ${count} 条提醒缓存！\n\n现在可以点击"🔔 立即检查提醒"重新发送通知。`);
+            console.log(`🗑️ 已清除 ${count} 条提醒缓存`);
+        }
+
+        // 测试微信通知
+        async function testWeChatNotification(event) {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN');
+            
+            const title = '📅 日程管理系统 - 测试通知';
+            const content = `
+## 测试消息
+
+这是一条测试通知，发送时间：**${timeStr}**
+
+### ✅ 系统信息
+- Server酱配置成功
+- 微信通知已启用
+- 可以接收日程提醒
+
+### 📋 功能说明
+系统会在以下情况自动发送通知：
+1. 重要事件提前 14/7/3/1 天提醒
+2. 插入临时事件时提醒
+3. 自动进入冲刺模式时提醒
+
+### 📱 联系方式
+- 手机：15914969166
+- 邮箱：1875512848@qq.com
+
+---
+*来自日程管理系统*
+            `;
+            
+            // 显示加载提示（仅在有event时）
+            let originalText = '🧪 测试通知';
+            if (event && event.target) {
+                originalText = event.target.textContent;
+                event.target.textContent = '⏳ 发送中...';
+                event.target.disabled = true;
+            }
+            
+            try {
+                const success = await sendWeChatNotification(title, content);
+                
+                if (success) {
+                    alert('✅ 测试通知已发送成功！\n\n请查看你的微信「方糖服务号」\n\n如果没有收到，请检查：\n1. 是否关注了「方糖服务号」\n2. SendKey 是否正确\n3. 网络连接是否正常');
+                } else {
+                    alert('❌ 通知发送失败\n\n可能的原因：\n1. SendKey 配置错误\n2. 网络连接问题\n3. Server酱服务异常\n\n请检查浏览器控制台查看详细错误信息');
+                }
+            } catch (error) {
+                console.error('测试通知失败:', error);
+                alert('❌ 发送异常：' + error.message);
+            } finally {
+                if (event && event.target) {
+                    event.target.textContent = originalText;
+                    event.target.disabled = false;
+                }
+            }
+        }
+
+        // 显示通知设置（已简化，直接显示固定信息）
+        function displayNotificationSettings() {
+            // 不需要动态显示，已在HTML中写死
+        }
+
+        // 编辑通知设置（已移除，使用固定配置）
+        function editNotificationSettings() {
+            alert('通知设置已固定配置\n\n📱 手机：15914969166\n📧 邮箱：1875512848@qq.com\n🔔 Server酱：已启用');
+        }
+
+        // 测试通知（旧版本，保留兼容）
+        function testNotification() {
+            testWeChatNotification();
+        }
+
+        // 检查即将到来的提醒（统一处理所有事件）
+        function checkUpcomingReminders() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            console.log('🔍 检查提醒事件...');
+            
+            // 1. 检查重要事件（里程碑）
+            baseConfig.milestones.forEach(milestone => {
+                const milestoneDate = new Date(milestone.date);
+                milestoneDate.setHours(0, 0, 0, 0);
+                
+                const daysUntil = Math.ceil((milestoneDate - today) / (1000 * 60 * 60 * 24));
+                
+                console.log(`📅 ${milestone.name}: 还有 ${daysUntil} 天`);
+                
+                // 检查是否需要提醒（14/7/3/1天）
+                if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
+                    const reminderKey = `reminder_${milestone.date}_${daysUntil}`;
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    // 如果今天还没有提醒过，则发送提醒
+                    if (lastReminder !== todayStr) {
+                        console.log(`🔔 发送提醒: ${milestone.name} (${daysUntil}天)`);
+                        showReminder(milestone, daysUntil, reminderKey, todayStr);
+                    } else {
+                        console.log(`⏭️ 今天已提醒过: ${milestone.name}`);
+                    }
+                }
+            });
+            
+            // 2. 检查月历中的所有事件
+            Object.keys(monthEvents).forEach(dateStr => {
+                const eventDate = new Date(dateStr);
+                eventDate.setHours(0, 0, 0, 0);
+                
+                const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                
+                console.log(`📅 月历事件 [${dateStr}]: ${monthEvents[dateStr]} - 还有 ${daysUntil} 天`);
+                
+                // 检查是否需要提醒（14/7/3/1天）
+                if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
+                    const reminderKey = `calendar_${dateStr}_${daysUntil}`;
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    // 如果今天还没有提醒过，则发送提醒
+                    if (lastReminder !== todayStr) {
+                        console.log(`🔔 发送月历提醒: ${monthEvents[dateStr]} (${daysUntil}天)`);
+                        
+                        const milestone = {
+                            date: dateStr,
+                            name: monthEvents[dateStr],
+                            note: '来自月历'
+                        };
+                        showReminder(milestone, daysUntil, reminderKey, todayStr);
+                    } else {
+                        console.log(`⏭️ 今天已提醒过: ${monthEvents[dateStr]}`);
+                    }
+                }
+            });
+        }
+
+        // 显示提醒（修改为只有发送成功后才标记为已提醒）
+        async function showReminder(milestone, daysUntil, reminderKey, todayStr) {
+            const message = `🔔 重要提醒\n\n距离「${milestone.name}」还有 ${daysUntil} 天！\n日期：${milestone.date}\n${milestone.note ? '备注：' + milestone.note : ''}\n\n请做好准备！`;
+            
+            console.log('📤 发送提醒通知...', { name: milestone.name, daysUntil });
+            
+            let wechatSuccess = false;
+            
+            // 1. 发送微信通知（优先）
+            if (typeof sendWeChatNotification === 'function') {
+                const title = `🔔 日程提醒 (${daysUntil}天后)`;
+                const content = `## 重要提醒\n\n距离「**${milestone.name}**」还有 **${daysUntil}** 天！\n\n**日期：** ${milestone.date}\n${milestone.note ? '**备注：** ' + milestone.note + '\n' : ''}\n请做好准备！💪`;
+                
+                wechatSuccess = await sendWeChatNotification(title, content);
+                if (wechatSuccess) {
+                    console.log('✅ 微信提醒发送成功');
+                    // 只有微信通知发送成功后，才标记为已提醒
+                    if (reminderKey && todayStr) {
+                        localStorage.setItem(reminderKey, todayStr);
+                        console.log(`💾 已标记为今日已提醒: ${reminderKey}`);
+                    }
+                } else {
+                    console.error('❌ 微信提醒发送失败');
+                }
+            } else {
+                console.error('❌ sendWeChatNotification 函数未定义');
+            }
+            
+            // 2. 浏览器通知（备用）
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('日程提醒', {
+                    body: message,
+                    icon: '📅',
+                    badge: '🔔'
+                });
+            }
+        }
+
+        // 请求通知权限
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // 加载保存的配置
+        function loadSavedConfig() {
+            // 加载自定义时间轴
+            const savedTimeline = localStorage.getItem('customTimeline');
+            if (savedTimeline) {
+                try {
+                    const customTimeline = JSON.parse(savedTimeline);
+                    baseConfig.dailyTimeline = customTimeline;
+                } catch (e) {
+                    console.error('加载时间轴失败:', e);
+                }
+            }
+            
+            // 加载自定义周计划
+            const savedWeekly = localStorage.getItem('customWeekly');
+            if (savedWeekly) {
+                try {
+                    const customWeekly = JSON.parse(savedWeekly);
+                    baseConfig.weeklyTasks = customWeekly;
+                } catch (e) {
+                    console.error('加载周计划失败:', e);
+                }
+            }
+            
+            // 加载自定义里程碑
+            const savedMilestones = localStorage.getItem('customMilestones');
+            if (savedMilestones) {
+                try {
+                    baseConfig.milestones = JSON.parse(savedMilestones);
+                } catch (e) {
+                    console.error('加载里程碑失败:', e);
+                }
+            }
+            
+            config = JSON.parse(JSON.stringify(baseConfig));
+            console.log('✅ 配置已加载:', { timeline: config.dailyTimeline.length, milestones: config.milestones.length });
+        }
+
+        // 保存自定义配置
+        function saveCustomConfig() {
+            try {
+                localStorage.setItem('customTimeline', JSON.stringify(config.dailyTimeline));
+                localStorage.setItem('customWeekly', JSON.stringify(config.weeklyTasks));
+                localStorage.setItem('customMilestones', JSON.stringify(baseConfig.milestones));
+                console.log('✅ 配置已保存');
+            } catch (e) {
+                console.error('❌ 保存配置失败:', e);
+            }
+        }
+
+        // 显示模式消息
+        function showModeMessage() {
+            const message = localStorage.getItem('modeMessage');
+            if (message) {
+                const messageDiv = document.getElementById('modeMessage');
+                messageDiv.textContent = message;
+                messageDiv.style.display = 'block';
+            }
+        }
+
+        // 切换模式
+        function switchMode(mode, customData = {}) {
+            const message = autoRepair(mode, customData);
+            renderTimeline();
+            updateStats();
+            
+            const messageDiv = document.getElementById('modeMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            
+            // 3秒后淡出
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                    messageDiv.style.opacity = '1';
+                }, 500);
+            }, 5000);
+        }
+
+        // 更新日期时间
+        function updateDateTime() {
+            const now = new Date();
+            const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            
+            document.getElementById('currentDate').textContent = 
+                `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            document.getElementById('currentDay').textContent = days[now.getDay()];
+            document.getElementById('currentTime').textContent = 
+                `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        }
+
+        // 自动修复逻辑
+        function autoRepair(mode, customData = {}) {
+            currentMode = mode;
+            const dayOfWeek = new Date().getDay();
+            const currentExamPoint = baseConfig.examPoints[dayOfWeek % 5];
+            const today = new Date();
+            const isHobby = isHobbyWeek(today);
+            
+            let newTimeline = JSON.parse(JSON.stringify(baseConfig.dailyTimeline));
+            let message = "";
+
+            // 先根据周次类型调整
+            if (mode === 'normal' && isHobby) {
+                // 兴趣周的特殊调整
+                if (dayOfWeek === 3) { // 周三
+                    newTimeline[5].task = "🎨 兴趣爱好时间（书法/羽毛球/其他）";
+                    newTimeline[5].tag = "兴趣";
+                } else if (dayOfWeek === 6) { // 周六
+                    newTimeline[3].task = "🎨 兴趣爱好时间（大块时间自由安排）";
+                    newTimeline[3].tag = "兴趣";
+                }
+            }
+
+            switch(mode) {
+                case "interview":
+                    const interviewTime = customData.time || "13:30 - 17:30";
+                    newTimeline = newTimeline.map(item => {
+                        if (item.type === "practice") {
+                            return { ...item, task: `🎯 面试时间：${interviewTime}`, tag: "面试", disabled: false };
+                        }
+                        if (item.type === "review") {
+                            return { ...item, task: "面试准备 + 复习面试题", tag: "准备" };
+                        }
+                        return item;
+                    });
+                    message = `✅ 收到！面试优先。已为您腾出 ${interviewTime}，今日计划已更新。加油！💪`;
+                    break;
+
+                case "tired":
+                    newTimeline = newTimeline.map(item => {
+                        if (item.type === "exam" || item.type === "practice" || item.type === "review") {
+                            return { ...item, task: "🔴 休息/睡眠", tag: "休息", disabled: true };
+                        }
+                        if (item.type === "exercise") {
+                            return { ...item, task: "🔴 休息/睡眠", tag: "休息", disabled: true };
+                        }
+                        if (item.type === "tech") {
+                            return { ...item, task: "轻度技术学习（看视频即可，不强制动手）", tag: "轻度" };
+                        }
+                        return item;
+                    });
+                    message = "🔴 明白，身体第一。启动红灯模式，今天只保留最低限度技术打卡，好好休息。";
+                    break;
+
+                case "stressed":
+                    newTimeline = newTimeline.map(item => {
+                        if (item.type === "exam") {
+                            return { ...item, task: `轻度复习 ${currentExamPoint}（只看笔记，不做难题）`, tag: "轻松" };
+                        }
+                        if (item.type === "practice") {
+                            return { ...item, task: "🎨 书法练习 OR 散步放松", tag: "放松", disabled: false };
+                        }
+                        if (item.type === "exercise") {
+                            return { ...item, task: "🏸 羽毛球/跑步（加长时间，尽情发泄）", tag: "发泄" };
+                        }
+                        if (item.type === "review") {
+                            return { ...item, task: "看轻松的技术视频/文章", tag: "轻松" };
+                        }
+                        return item;
+                    });
+                    message = "😌 状态不好效率也会低。调整了计划，去运动/写字放松一下吧，晚上回来再看技术。";
+                    break;
+
+                case "sprint":
+                    newTimeline = newTimeline.map(item => {
+                        if (item.type === "exam") {
+                            return { ...item, task: `🔥 ${currentExamPoint} 高强度攻坚（背诵+刷题）`, tag: "冲刺" };
+                        }
+                        if (item.type === "practice") {
+                            return { ...item, task: "🔥 全真模拟考试 OR 高频错题", tag: "模考" };
+                        }
+                        if (item.type === "exercise") {
+                            return { ...item, task: "轻度散步（15分钟即可）", tag: "简化" };
+                        }
+                        if (item.type === "review") {
+                            return { ...item, task: "🔥 错题本 + 知识点查漏补缺", tag: "强化" };
+                        }
+                        return item;
+                    });
+                    message = "🔥 进入冲刺阶段！所有娱乐暂停，全力以赴。坚持住！";
+                    break;
+
+                default:
+                    newTimeline = newTimeline.map(item => {
+                        if (item.type === "exam") {
+                            return { ...item, task: `核心考点攻坚：${currentExamPoint}（理论/背诵）` };
+                        }
+                        return item;
+                    });
+                    const weekType = isHobby ? '兴趣周' : '冲刺周';
+                    message = `☀️ 今天是${["周日", "周一", "周二", "周三", "周四", "周五", "周六"][dayOfWeek]}，正常模式（${weekType}）。今日重点：${currentExamPoint}。加油！`;
+            }
+
+            config.dailyTimeline = newTimeline;
+            localStorage.setItem('currentMode', mode);
+            localStorage.setItem('modeMessage', message);
+            
+            return message;
+        }
+
+        // 检查是否在冲刺期（自动检测考试临近）
+        function checkSprintMode() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // 1. 检查预设的冲刺期
+            for (let period of baseConfig.sprintPeriods) {
+                if (todayStr >= period.start && todayStr <= period.end) {
+                    return true;
+                }
+            }
+            
+            // 2. 自动检测：距离任何考试14天内自动进入冲刺模式
+            for (let milestone of baseConfig.milestones) {
+                // 只检查包含"考试"、"考"、"大考"关键词的事件
+                if (milestone.name.includes('考试') || milestone.name.includes('大考') || milestone.name.includes('国考') || milestone.name.includes('省考')) {
+                    const milestoneDate = new Date(milestone.date);
+                    milestoneDate.setHours(0, 0, 0, 0);
+                    const todayDate = new Date(today);
+                    todayDate.setHours(0, 0, 0, 0);
+                    
+                    const daysUntil = Math.ceil((milestoneDate - todayDate) / (1000 * 60 * 60 * 24));
+                    
+                    // 距离考试14天内自动进入冲刺模式
+                    if (daysUntil > 0 && daysUntil <= 14) {
+                        console.log(`🔥 自动冲刺：距离「${milestone.name}」还有 ${daysUntil} 天，自动进入冲刺模式`);
+                        
+                        // 发送微信通知
+                        if (typeof sendWeChatNotification !== 'undefined') {
+                            sendWeChatNotification(
+                                '🔥 自动进入冲刺模式',
+                                `## 考试临近提醒\n\n距离「**${milestone.name}**」还有 **${daysUntil}** 天！\n\n系统已自动切换为冲刺模式：\n- 取消兴趣时间\n- 增加学习强度\n- 全力备考\n\n加油！💪`
+                            );
+                        }
+                        
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        // 编辑任务
+        function editTask(index) {
+            const item = config.dailyTimeline[index];
+            const newTask = prompt(`编辑任务内容\n时间段：${item.time}\n标签：${item.tag}\n\n${item.placeholder}`, item.task);
+            
+            if (newTask !== null) {
+                config.dailyTimeline[index].task = newTask.trim();
+                baseConfig.dailyTimeline[index].task = newTask.trim();
+                saveCustomConfig();
+                renderTimeline();
+            }
+        }
+
+        // 渲染时间轴
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            const today = new Date().toDateString();
+            
+            container.innerHTML = config.dailyTimeline.map((item, index) => {
+                const key = `task_${today}_${index}`;
+                const completed = localStorage.getItem(key) === 'true';
+                const isDisabled = item.disabled || false;
+                const displayTask = item.task || `<span style="color: #999;">${item.placeholder}</span>`;
+                
+                return `
+                    <div class="timeline-item ${completed ? 'completed' : ''} ${isDisabled ? 'disabled' : ''}" id="${key}">
+                        <span class="time-range">${item.time}</span>
+                        <div class="task-name">
+                            <div><strong>[${item.tag}]</strong></div>
+                            <div class="task-desc">${displayTask}</div>
+                        </div>
+                        <div>
+                            ${item.isCustom ? `<button class="edit-btn" onclick="deleteCustomTask(${index})" style="background: #dc3545;">🗑️</button>` : `<button class="edit-btn" onclick="editTask(${index})">✏️</button>`}
+                            <button class="save-btn" onclick="insertUrgentTaskAt(${index})" style="font-size: 0.8em; padding: 5px 10px; margin: 0 5px;">➕</button>
+                            <button class="check-btn ${completed ? 'checked' : ''}" onclick="toggleTask('${key}')" ${isDisabled ? 'disabled' : ''}>
+                                ${completed ? '✓' : '打卡'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 编辑周计划
+        function editWeeklyTask(day) {
+            const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const task = config.weeklyTasks[day];
+            const focus = prompt(`编辑 ${dayNames[day]} 的核心重点：`, task.focus);
+            
+            if (focus !== null) {
+                const extra = prompt(`编辑 ${dayNames[day]} 的额外任务：`, task.extra);
+                if (extra !== null) {
+                    config.weeklyTasks[day].focus = focus.trim();
+                    config.weeklyTasks[day].extra = extra.trim();
+                    baseConfig.weeklyTasks[day] = { ...config.weeklyTasks[day] };
+                    saveCustomConfig();
+                    renderWeekly();
+                }
+            }
+        }
+
+        // 渲染本周重点
+        function renderWeekly() {
+            const container = document.getElementById('weeklyContainer');
+            const today = new Date();
+            const isHobby = isHobbyWeek(today);
+            const weekNum = getWeekOfMonth(today);
+            
+            container.innerHTML = `
+                <div class="weekly-task">
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">本周类型</h3>
+                    <p style="font-size: 1.1em; font-weight: bold; color: ${isHobby ? '#28a745' : '#ff6b6b'};">
+                        ${isHobby ? '🎨 兴趣周' : '🔥 冲刺周'} (第${weekNum}周)
+                    </p>
+                    <p style="margin-top: 8px; color: #666;">
+                        ${isHobby ? '本周周三晚和周六下午可安排兴趣爱好' : '本周全力学习，无兴趣时间'}
+                    </p>
+                </div>
+            `;
+        }
+
+        // 在指定时间段插入临时事件
+        function insertUrgentTaskAt(slotIndex) {
+            const taskName = prompt('请输入临时事件名称（如：面试、宣讲会等）：');
+            if (!taskName) return;
+            
+            // 询问是否自定义时间
+            const customTime = confirm('是否自定义时间？\n\n点击"确定"自定义时间\n点击"取消"使用当前时间段');
+            
+            let startTime, endTime, timeRange;
+            
+            if (customTime) {
+                // 自定义时间
+                startTime = prompt('请输入开始时间（格式：HH:MM，如 14:30）：');
+                if (!startTime) return;
+                
+                endTime = prompt('请输入结束时间（格式：HH:MM，如 16:30）：');
+                if (!endTime) return;
+                
+                // 验证时间格式
+                const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+                    alert('❌ 时间格式错误！请使用 HH:MM 格式（如 14:30）');
+                    return;
+                }
+                
+                timeRange = `${startTime} - ${endTime}`;
+                
+                // 插入新的时间段
+                const newTask = {
+                    time: timeRange,
+                    tag: "临时",
+                    task: `🚨 ${taskName}（临时插入）`,
+                    type: "urgent",
+                    priority: "high",
+                    placeholder: "",
+                    isCustom: true
+                };
+                
+                config.dailyTimeline.push(newTask);
+                
+                // 按时间排序
+                sortTimelineByTime();
+                
+            } else {
+                // 使用当前时间段
+                const originalTask = config.dailyTimeline[slotIndex].task;
+                timeRange = config.dailyTimeline[slotIndex].time;
+                
+                const confirmReplace = window.confirm(`将在 ${timeRange} 插入「${taskName}」\n\n原任务「${originalTask}」将被替换。\n\n是否继续？`);
+                
+                if (!confirmReplace) return;
+                
+                config.dailyTimeline[slotIndex].task = `🚨 ${taskName}（临时插入）`;
+                config.dailyTimeline[slotIndex].tag = "临时";
+            }
+            
+            renderTimeline();
+            alert(`✅ 已插入临时事件「${taskName}」\n时间：${timeRange}`);
+            
+            // 发送微信通知
+            if (typeof sendWeChatNotification !== 'undefined') {
+                const today = new Date().toLocaleDateString('zh-CN');
+                sendWeChatNotification(
+                    '📅 临时事件提醒',
+                    `## 已插入临时事件\n\n**日期：** ${today}\n**时间：** ${timeRange}\n**事件：** ${taskName}\n\n请注意时间安排！`
+                );
+            }
+        }
+
+        // 按时间排序时间轴
+        function sortTimelineByTime() {
+            config.dailyTimeline.sort((a, b) => {
+                // 提取开始时间
+                const getStartTime = (timeStr) => {
+                    const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+                    if (match) {
+                        return parseInt(match[1]) * 60 + parseInt(match[2]);
+                    }
+                    return 0;
+                };
+                
+                return getStartTime(a.time) - getStartTime(b.time);
+            });
+        }
+
+        // 按时间排序时间轴
+        function sortTimelineByTime() {
+            config.dailyTimeline.sort((a, b) => {
+                // 提取开始时间
+                const getStartTime = (timeStr) => {
+                    const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+                    if (match) {
+                        return parseInt(match[1]) * 60 + parseInt(match[2]);
+                    }
+                    return 0;
+                };
+                
+                return getStartTime(a.time) - getStartTime(b.time);
+            });
+        }
+
+        // 删除自定义任务
+        function deleteCustomTask(index) {
+            if (confirm('确定要删除这个临时事件吗？')) {
+                config.dailyTimeline.splice(index, 1);
+                renderTimeline();
+                updateStats();
+            }
+        }
+
+        // 插入临时事件（旧版本，保留兼容）
+        function insertUrgentTask() {
+            const taskName = prompt('请输入临时事件名称（如：面试、宣讲会等）：');
+            if (!taskName) return;
+            
+            const timeSlot = prompt('请选择时间段：\n1. 上午 (07:30-11:30)\n2. 下午 (13:30-17:30)\n3. 晚上 (19:00-22:30)\n\n请输入数字 1、2 或 3：');
+            
+            let slotIndex;
+            switch(timeSlot) {
+                case '1': slotIndex = 1; break;
+                case '2': slotIndex = 3; break;
+                case '3': slotIndex = 5; break;
+                default: 
+                    alert('❌ 无效的选择');
+                    return;
+            }
+            
+            const originalTask = config.dailyTimeline[slotIndex].task;
+            const confirm = window.confirm(`将在 ${config.dailyTimeline[slotIndex].time} 插入「${taskName}」\n\n原任务「${originalTask}」将被替换。\n\n是否继续？`);
+            
+            if (confirm) {
+                config.dailyTimeline[slotIndex].task = `🚨 ${taskName}（临时插入）`;
+                config.dailyTimeline[slotIndex].tag = "临时";
+                renderTimeline();
+                alert(`✅ 已插入临时事件「${taskName}」`);
+            }
+        }
+
+        // 渲染里程碑
+        function renderMilestones() {
+            const container = document.getElementById('milestonesContainer');
+            const today = new Date();
+            
+            container.innerHTML = baseConfig.milestones.map((milestone, index) => {
+                const milestoneDate = new Date(milestone.date);
+                const daysUntil = Math.ceil((milestoneDate - today) / (1000 * 60 * 60 * 24));
+                const isPast = daysUntil < 0;
+                const daysText = isPast ? `已过去 ${Math.abs(daysUntil)} 天` : `还有 ${daysUntil} 天`;
+                
+                // 检查是否需要提醒
+                const needsReminder = baseConfig.notifications.reminderDays.includes(daysUntil);
+                const reminderIcon = needsReminder ? '🔔 ' : '';
+                
+                return `
+                    <div class="milestone" style="${isPast ? 'opacity: 0.6;' : ''}">
+                        <span class="milestone-date">${milestone.date}</span>
+                        <strong style="margin: 0 15px;">${reminderIcon}${milestone.name}</strong>
+                        <span style="color: ${isPast ? '#999' : needsReminder ? '#ff0000' : '#ff6b6b'}; font-weight: ${needsReminder ? 'bold' : 'normal'};">${daysText}</span>
+                        ${milestone.note ? `<p style="margin-top: 8px; color: #666;">${milestone.note}</p>` : ''}
+                        <button class="edit-btn" onclick="deleteMilestone(${index})" style="margin-top: 5px;">🗑️ 删除</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 删除里程碑
+        function deleteMilestone(index) {
+            if (confirm('确定要删除这个事件吗？')) {
+                baseConfig.milestones.splice(index, 1);
+                saveCustomConfig();
+                renderMilestones();
+            }
+        }
+
+        // 切换任务状态
+        function toggleTask(key) {
+            const current = localStorage.getItem(key) === 'true';
+            localStorage.setItem(key, !current);
+            renderTimeline();
+            updateStats();
+        }
+
+        // 更新统计
+        function updateStats() {
+            const today = new Date().toDateString();
+            let completed = 0;
+            const total = config.dailyTimeline.length;
+            
+            config.dailyTimeline.forEach((item, index) => {
+                const key = `task_${today}_${index}`;
+                if (localStorage.getItem(key) === 'true') {
+                    completed++;
+                }
+            });
+            
+            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('completionRate').textContent = rate + '%';
+            document.getElementById('progressFill').style.width = rate + '%';
+            document.getElementById('progressFill').textContent = rate + '%';
+        }
+
+        // 保存笔记
+        function saveNotes() {
+            const notes = document.getElementById('dailyNotes').value;
+            const today = new Date().toDateString();
+            localStorage.setItem(`notes_${today}`, notes);
+            alert('✅ 笔记已保存！');
+        }
+
+        // 加载数据
+        function loadData() {
+            const today = new Date().toDateString();
+            const savedNotes = localStorage.getItem(`notes_${today}`);
+            if (savedNotes) {
+                document.getElementById('dailyNotes').value = savedNotes;
+            }
+        }
+
+        // 启动
+        init();
+    </script>
+    
+    <!-- Server酱微信通知功能 -->
+    <script>
+        // Server酱配置
+        const SERVER_CHAN_KEY = 'SCT310265TyJ4D67VAfJfQTSj87381qEAY';
+
+        // 发送微信通知
+        async function sendWeChatNotification(title, content) {
+            try {
+                console.log('📤 正在发送微信通知...', { title, content });
+                
+                // 使用 FormData 格式发送
+                const formData = new URLSearchParams();
+                formData.append('title', title);
+                formData.append('desp', content);
+                
+                const response = await fetch(`https://sctapi.ftqq.com/${SERVER_CHAN_KEY}.send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                console.log('📥 Server酱响应:', result);
+                
+                if (result.code === 0) {
+                    console.log('✅ 微信通知发送成功！PushID:', result.data.pushid);
+                    return true;
+                } else {
+                    console.error('❌ 微信通知发送失败:', result.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ 微信通知发送异常:', error);
+                return false;
+            }
+        }
+
+        // 浏览器通知
+        function sendBrowserNotification(title, body) {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: body,
+                        icon: '📅',
+                        badge: '🔔'
+                    });
+                    return true;
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, {
+                                body: body,
+                                icon: '📅'
+                            });
+                        }
+                    });
+                }
+            }
+            return false;
+        }
+
+        console.log('✅ Server酱通知服务已加载');
+    </script>
+</body>
+</html>
