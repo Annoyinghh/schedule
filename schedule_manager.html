@@ -748,25 +748,31 @@
                     if (newEvent.trim()) {
                         monthEvents[dateStr] = newEvent.trim();
                         
-                        // 如果是明天的事件，立即发送提醒
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+                        // 计算距离今天的天数
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const eventDate = new Date(dateStr);
+                        eventDate.setHours(0, 0, 0, 0);
+                        const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
                         
-                        if (dateStr === tomorrowStr) {
+                        // 如果是未来的事件，立即发送一次提醒
+                        if (daysUntil > 0 && daysUntil <= 14) {
                             if (typeof sendWeChatNotification !== 'undefined') {
                                 sendWeChatNotification(
-                                    '📅 明天事件提醒',
-                                    `## 明天有安排\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n\n请提前做好准备！`
+                                    '📅 新事件提醒',
+                                    `## 已添加新事件\n\n**日期：** ${dateStr}\n**事件：** ${newEvent.trim()}\n**距离：** ${daysUntil} 天\n\n系统会在提前 14/7/3/1 天自动提醒。`
                                 );
                             }
-                            alert('✅ 已设置明天的事件，并发送了微信提醒！');
+                            alert(`✅ 已设置事件，并发送了微信提醒！\n\n距离：${daysUntil} 天\n系统会在提前 14/7/3/1 天自动提醒。`);
                         }
                     } else {
                         delete monthEvents[dateStr];
                     }
                     saveMonthEvents();
                     renderCalendar();
+                    
+                    // 重新检查提醒
+                    checkUpcomingReminders();
                 }
             } else {
                 // 调整时间轴
@@ -888,13 +894,14 @@
             testWeChatNotification();
         }
 
-        // 检查即将到来的提醒
+        // 检查即将到来的提醒（统一处理所有事件）
         function checkUpcomingReminders() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
             console.log('🔍 检查提醒事件...');
             
+            // 1. 检查重要事件（里程碑）
             baseConfig.milestones.forEach(milestone => {
                 const milestoneDate = new Date(milestone.date);
                 milestoneDate.setHours(0, 0, 0, 0);
@@ -920,43 +927,37 @@
                 }
             });
             
-            // 检查月历中的明天事件
-            checkTomorrowEvents();
-        }
-
-        // 检查明天的事件
-        function checkTomorrowEvents() {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-            
-            const tomorrowEvent = monthEvents[tomorrowStr];
-            
-            if (tomorrowEvent) {
-                const reminderKey = `tomorrow_${tomorrowStr}`;
-                const todayStr = new Date().toISOString().split('T')[0];
+            // 2. 检查月历中的所有事件
+            Object.keys(monthEvents).forEach(dateStr => {
+                const eventDate = new Date(dateStr);
+                eventDate.setHours(0, 0, 0, 0);
                 
-                // 如果今天还没有提醒过明天的事件
-                if (localStorage.getItem(reminderKey) !== todayStr) {
-                    console.log(`🔔 明天有事件: ${tomorrowEvent}`);
+                const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                
+                console.log(`📅 月历事件 [${dateStr}]: ${monthEvents[dateStr]} - 还有 ${daysUntil} 天`);
+                
+                // 检查是否需要提醒（14/7/3/1天）
+                if (baseConfig.notifications.reminderDays.includes(daysUntil)) {
+                    const reminderKey = `calendar_${dateStr}_${daysUntil}`;
+                    const lastReminder = localStorage.getItem(reminderKey);
+                    const todayStr = today.toISOString().split('T')[0];
                     
-                    // 发送微信通知
-                    if (typeof sendWeChatNotification !== 'undefined') {
-                        sendWeChatNotification(
-                            '📅 明天事件提醒',
-                            `## 明天有安排\n\n**日期：** ${tomorrowStr}\n**事件：** ${tomorrowEvent}\n\n请提前做好准备！`
-                        );
+                    // 如果今天还没有提醒过，则发送提醒
+                    if (lastReminder !== todayStr) {
+                        console.log(`🔔 发送月历提醒: ${monthEvents[dateStr]} (${daysUntil}天)`);
+                        
+                        const milestone = {
+                            date: dateStr,
+                            name: monthEvents[dateStr],
+                            note: '来自月历'
+                        };
+                        showReminder(milestone, daysUntil);
+                        localStorage.setItem(reminderKey, todayStr);
+                    } else {
+                        console.log(`⏭️ 今天已提醒过: ${monthEvents[dateStr]}`);
                     }
-                    
-                    // 浏览器通知
-                    sendBrowserNotification(
-                        '📅 明天事件提醒',
-                        `明天（${tomorrowStr}）有事：${tomorrowEvent}`
-                    );
-                    
-                    localStorage.setItem(reminderKey, todayStr);
                 }
-            }
+            });
         }
 
         // 显示提醒
