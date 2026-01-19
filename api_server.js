@@ -42,11 +42,9 @@ function saveEvents(data) {
     }
 }
 
-// 处理CORS
+// 处理CORS（已由Nginx处理，这里不再设置）
 function setCORS(res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // CORS由Nginx反向代理处理，这里不需要设置
 }
 
 // 发送响应
