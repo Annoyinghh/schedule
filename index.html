@@ -530,13 +530,13 @@
             <div class="section">
                 <h2>🔔 通知设置</h2>
                 <div style="background: white; padding: 12px; border-radius: 8px;">
-                    <p><strong>📱 手机：</strong> 15914969166</p>
-                    <p><strong>📧 邮箱：</strong> 1875512848@qq.com</p>
-                    <p><strong>⏰ 提醒时间：</strong>每天早上 7:00</p>
+                    <p><strong>📱 手机：</strong> <span style="color: #999;">已配置</span></p>
+                    <p><strong>📧 邮箱：</strong> <span style="color: #999;">已配置</span></p>
+                    <p><strong>⏰ 提醒时间：</strong>每天早上 6:30 / 7:00</p>
                     <p><strong>📅 提醒规则：</strong>提前 14天、7天、3天、1天</p>
                     <p style="margin-top: 10px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 0.9em;">
                         <strong>✅ 云服务器自动提醒</strong><br>
-                        通知将通过云服务器自动发送到微信「方糖服务号」
+                        通知将通过云服务器自动发送到微信「方糖服务号」和邮箱
                     </p>
                 </div>
             </div>
@@ -599,8 +599,8 @@
             },
             // 通知设置
             notifications: {
-                phone: "15914969166",
-                email: "1875512848@qq.com",
+                phone: "[已配置]",
+                email: "[已配置]",
                 reminderDays: [14, 7, 3, 1] // 提前14天、7天、3天、1天提醒
             }
         };
@@ -1054,7 +1054,7 @@
 
         // 编辑通知设置（已移除，使用固定配置）
         function editNotificationSettings() {
-            alert('通知设置已固定配置\n\n📱 手机：15914969166\n📧 邮箱：1875512848@qq.com\n🔔 Server酱：已启用');
+            alert('通知设置已固定配置\n\n📱 手机：已配置\n📧 邮箱：已配置\n🔔 Server酱：已启用');
         }
 
         // 测试通知（旧版本，保留兼容）
